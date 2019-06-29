@@ -80,6 +80,7 @@
 #include <float.h>
 #include <cstring>
 
+#include <uORB/SubscriptionBlocking.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/cpuload.h>
@@ -3432,32 +3433,16 @@ void *commander_low_prio_loop(void *arg)
 	px4_prctl(PR_SET_NAME, "commander_low_prio", px4_getpid());
 
 	/* Subscribe to command topic */
-	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
+	uORB::SubscriptionBlocking<vehicle_command_s> cmd_sub{ORB_ID(vehicle_command)};
 
 	/* command ack */
 	uORB::PublicationQueued<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
 
-	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[1];
-
-	fds[0].fd = cmd_sub;
-	fds[0].events = POLLIN;
-
 	while (!thread_should_exit) {
-		/* wait for up to 1000ms for data */
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 1000);
+		// wait for data
+		vehicle_command_s cmd;
 
-		if (pret < 0) {
-			/* this is undesirable but not much we can do - might want to flag unhappy status */
-			warn("commander: poll error %d, %d", pret, errno);
-			continue;
-
-		} else if (pret != 0) {
-			struct vehicle_command_s cmd {};
-
-			/* if we reach here, we have a valid command */
-			orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
-
+		if (cmd_sub.updateBlocking(cmd)) {
 			/* ignore commands the high-prio loop or the navigator handles */
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_MODE ||
 			    cmd.command == vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM ||
@@ -3689,8 +3674,6 @@ void *commander_low_prio_loop(void *arg)
 			}
 		}
 	}
-
-	px4_close(cmd_sub);
 
 	return nullptr;
 }
