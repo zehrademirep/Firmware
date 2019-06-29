@@ -127,12 +127,6 @@ public:
 	 */
 	void		set_interval_us(uint32_t interval) { _interval_us = interval; }
 
-	/**
-	 * Set the interval in milliseconds
-	 * @param interval The interval in milliseconds.
-	 */
-	void		set_interval_ms(uint32_t interval) { _interval_us = interval * 1000; }
-
 protected:
 
 	Subscription	_subscription;

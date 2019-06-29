@@ -452,7 +452,7 @@ bool Logger::add_topic(const char *name, uint32_t interval_ms, uint8_t instance)
 					PX4_DEBUG("logging topic %s(%d), interval: %i, already added, only setting interval",
 						  topics[i]->o_name, instance, interval_ms);
 
-					_subscriptions[j].set_interval_ms(interval_ms);
+					_subscriptions[j].set_interval_us(interval_ms * 1000);
 
 					subscription = &_subscriptions[j];
 					already_added = true;
