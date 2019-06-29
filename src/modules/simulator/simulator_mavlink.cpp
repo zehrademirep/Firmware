@@ -169,26 +169,17 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs(const 
 	return msg;
 }
 
-void Simulator::send_controls()
+void Simulator::send_controls(const actuator_outputs_s &actuators_outputs)
 {
-	// copy new actuator data if available
-	bool updated = false;
-	orb_check(_actuator_outputs_sub, &updated);
+	if (actuators_outputs.timestamp > 0) {
+		const mavlink_hil_actuator_controls_t hil_act_control = actuator_controls_from_outputs(actuators_outputs);
 
-	if (updated) {
-		actuator_outputs_s actuators{};
-		orb_copy(ORB_ID(actuator_outputs), _actuator_outputs_sub, &actuators);
+		mavlink_message_t message{};
+		mavlink_msg_hil_actuator_controls_encode(_param_mav_sys_id.get(), _param_mav_comp_id.get(), &message, &hil_act_control);
 
-		if (actuators.timestamp > 0) {
-			const mavlink_hil_actuator_controls_t hil_act_control = actuator_controls_from_outputs(actuators);
+		PX4_DEBUG("sending controls t=%ld (%ld)", actuators_outputs.timestamp, hil_act_control.time_usec);
 
-			mavlink_message_t message{};
-			mavlink_msg_hil_actuator_controls_encode(_param_mav_sys_id.get(), _param_mav_comp_id.get(), &message, &hil_act_control);
-
-			PX4_DEBUG("sending controls t=%ld (%ld)", actuators.timestamp, hil_act_control.time_usec);
-
-			send_mavlink_message(message);
-		}
+		send_mavlink_message(message);
 	}
 }
 
@@ -577,18 +568,6 @@ void Simulator::send_mavlink_message(const mavlink_message_t &aMsg)
 	}
 }
 
-void Simulator::poll_topics()
-{
-	// copy new actuator data if available
-	bool updated = false;
-
-	orb_check(_vehicle_status_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
-	}
-}
-
 void *Simulator::sending_trampoline(void * /*unused*/)
 {
 	_instance->send();
@@ -609,29 +588,14 @@ void Simulator::send()
 	// Without this, we get stuck at px4_poll which waits for a time update.
 	send_heartbeat();
 
-	px4_pollfd_struct_t fds[1] = {};
-	fds[0].fd = _actuator_outputs_sub;
-	fds[0].events = POLLIN;
-
 	while (true) {
-		// Wait for up to 100ms for data.
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		actuator_outputs_s actuator_outputs;
 
-		if (pret == 0) {
-			// Timed out, try again.
-			continue;
-		}
-
-		if (pret < 0) {
-			PX4_ERR("poll error %s", strerror(errno));
-			continue;
-		}
-
-		if (fds[0].revents & POLLIN) {
+		if (_actuator_outputs_sub.updateBlocking(actuator_outputs)) {
 			// Got new data to read, update all topics.
 			parameters_update(false);
-			poll_topics();
-			send_controls();
+			_vehicle_status_sub.update(&_vehicle_status);
+			send_controls(actuator_outputs);
 		}
 	}
 }
@@ -772,11 +736,6 @@ void Simulator::poll_for_MAVLink_messages()
 
 #endif
 
-	// Subscribe to topics.
-	// Only subscribe to the first actuator_outputs to fill a single HIL_ACTUATOR_CONTROLS.
-	_actuator_outputs_sub = orb_subscribe_multi(ORB_ID(actuator_outputs), 0);
-	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
-
 	// got data from simulator, now activate the sending thread
 	pthread_create(&sender_thread, &sender_thread_attr, Simulator::sending_trampoline, nullptr);
 	pthread_attr_destroy(&sender_thread_attr);
@@ -837,9 +796,6 @@ void Simulator::poll_for_MAVLink_messages()
 
 #endif
 	}
-
-	orb_unsubscribe(_actuator_outputs_sub);
-	orb_unsubscribe(_vehicle_status_sub);
 }
 
 

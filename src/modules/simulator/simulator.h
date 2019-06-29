@@ -53,6 +53,7 @@
 #include <perf/perf_counter.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
+#include <uORB/SubscriptionBlocking.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/battery_status.h>
@@ -261,7 +262,7 @@ private:
 	void poll_for_MAVLink_messages();
 	void request_hil_state_quaternion();
 	void send();
-	void send_controls();
+	void send_controls(const actuator_outputs_s &actuators_outputs);
 	void send_heartbeat();
 	void send_mavlink_message(const mavlink_message_t &aMsg);
 	void update_sensors(const hrt_abstime &time, const mavlink_hil_sensor_t &imu);
@@ -277,8 +278,8 @@ private:
 	orb_advert_t _rc_channels_pub{nullptr};
 
 	// uORB subscription handlers
-	int _actuator_outputs_sub{-1};
-	int _vehicle_status_sub{-1};
+	uORB::SubscriptionBlocking<actuator_outputs_s> _actuator_outputs_sub{ORB_ID(actuator_outputs)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	// hil map_ref data
 	struct map_projection_reference_s _hil_local_proj_ref {};
