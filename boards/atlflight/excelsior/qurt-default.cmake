@@ -77,6 +77,7 @@ px4_add_board(
 		mc_pos_control
 		rc_update
 		sensors
+		temperature_compensation
 		sih
 		vmount
 		vtol_att_control

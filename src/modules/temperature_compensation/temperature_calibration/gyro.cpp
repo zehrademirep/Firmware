@@ -53,10 +53,10 @@ TemperatureCalibrationGyro::TemperatureCalibrationGyro(float min_temperature_ris
 	}
 
 	_num_sensor_instances = num_gyros;
-
 }
 
-void TemperatureCalibrationGyro::reset_calibration()
+void
+TemperatureCalibrationGyro::reset_calibration()
 {
 	/* reset all driver level calibrations */
 	float offset = 0.0f;
@@ -72,7 +72,8 @@ void TemperatureCalibrationGyro::reset_calibration()
 	}
 }
 
-int TemperatureCalibrationGyro::update_sensor_instance(PerSensorData &data, int sensor_sub)
+int
+TemperatureCalibrationGyro::update_sensor_instance(PerSensorData &data, int sensor_sub)
 {
 	bool finished = data.hot_soaked;
 
@@ -83,7 +84,7 @@ int TemperatureCalibrationGyro::update_sensor_instance(PerSensorData &data, int 
 		return finished ? 0 : 1;
 	}
 
-	sensor_gyro_s gyro_data;
+	sensor_gyro_s gyro_data{};
 	orb_copy(ORB_ID(sensor_gyro), sensor_sub, &gyro_data);
 
 	if (finished) {
@@ -132,7 +133,7 @@ int TemperatureCalibrationGyro::update_sensor_instance(PerSensorData &data, int 
 		return 1;
 	}
 
-	//TODO: Detect when temperature has stopped rising for more than TBD seconds
+	// TODO: Detect when temperature has stopped rising for more than TBD seconds
 	if (data.hot_soak_sat == 10 || (data.high_temp - data.low_temp) > _min_temperature_rise) {
 		data.hot_soaked = true;
 	}
@@ -153,7 +154,8 @@ int TemperatureCalibrationGyro::update_sensor_instance(PerSensorData &data, int 
 	return 1;
 }
 
-int TemperatureCalibrationGyro::finish()
+int
+TemperatureCalibrationGyro::finish()
 {
 	for (unsigned uorb_index = 0; uorb_index < _num_sensor_instances; uorb_index++) {
 		finish_sensor_instance(_data[uorb_index], uorb_index);
@@ -169,7 +171,8 @@ int TemperatureCalibrationGyro::finish()
 	return result;
 }
 
-int TemperatureCalibrationGyro::finish_sensor_instance(PerSensorData &data, int sensor_index)
+int
+TemperatureCalibrationGyro::finish_sensor_instance(PerSensorData &data, int sensor_index)
 {
 	if (!data.hot_soaked || data.tempcal_complete) {
 		return 0;
@@ -211,5 +214,6 @@ int TemperatureCalibrationGyro::finish_sensor_instance(PerSensorData &data, int 
 	set_parameter("TC_G%d_TMAX", sensor_index, &data.high_temp);
 	set_parameter("TC_G%d_TMIN", sensor_index, &data.low_temp);
 	set_parameter("TC_G%d_TREF", sensor_index, &data.ref_temp);
+
 	return 0;
 }

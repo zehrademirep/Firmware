@@ -54,6 +54,7 @@ px4_add_board(
 		rc_update
 		rover_pos_control
 		sensors
+		temperature_compensation
 		sih
 		#simulator
 		vmount

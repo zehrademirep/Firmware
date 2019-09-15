@@ -37,6 +37,7 @@
 
 using namespace matrix;
 using namespace time_literals;
+using math::radians;
 
 VehicleAcceleration::VehicleAcceleration() :
 	ModuleParams(nullptr),
@@ -102,16 +103,26 @@ VehicleAcceleration::SensorCorrectionsUpdate(bool force)
 		sensor_correction_s corrections{};
 		_sensor_correction_sub.copy(&corrections);
 
-		// TODO: should be checking device ID
-		if (_selected_sensor == 0) {
+		// find in sensor corrections
+		if ((_sensor_correction_index < 0)
+		    || (corrections.accel_device_id[_sensor_correction_index] != _selected_sensor_device_id)) {
+
+			for (int correction_index = 0; correction_index < MAX_SENSOR_COUNT; correction_index++) {
+				if (corrections.accel_device_id[correction_index] == _selected_sensor_device_id) {
+					_sensor_correction_index = correction_index;
+				}
+			}
+		}
+
+		if (_sensor_correction_index == 0) {
 			_offset = Vector3f{corrections.accel_offset_0};
 			_scale = Vector3f{corrections.accel_scale_0};
 
-		} else if (_selected_sensor == 1) {
+		} else if (_sensor_correction_index == 1) {
 			_offset = Vector3f{corrections.accel_offset_1};
 			_scale = Vector3f{corrections.accel_scale_1};
 
-		} else if (_selected_sensor == 2) {
+		} else if (_sensor_correction_index == 2) {
 			_offset = Vector3f{corrections.accel_offset_2};
 			_scale = Vector3f{corrections.accel_scale_2};
 
@@ -119,22 +130,44 @@ VehicleAcceleration::SensorCorrectionsUpdate(bool force)
 			_offset = Vector3f{0.0f, 0.0f, 0.0f};
 			_scale = Vector3f{1.0f, 1.0f, 1.0f};
 		}
+	}
+
+	return false;
+}
+
+bool
+VehicleAcceleration::SensorSelectionUpdate(bool force)
+{
+	// check if the selected sensor has updated
+	if (_sensor_selection_sub.updated() || force) {
+
+		sensor_selection_s selection{};
+		_sensor_selection_sub.copy(&selection);
 
 		// update the latest sensor selection
-		if ((_selected_sensor != corrections.selected_accel_instance) || force) {
-			if (corrections.selected_accel_instance < MAX_SENSOR_COUNT) {
-				// clear all registered callbacks
-				for (auto &sub : _sensor_sub) {
-					sub.unregisterCallback();
-				}
+		if ((_selected_sensor_device_id != selection.accel_device_id) || force) {
 
-				const int sensor_new = corrections.selected_accel_instance;
+			// clear all registered callbacks
+			for (auto &sub : _sensor_sub) {
+				sub.unregisterCallback();
+			}
 
-				if (_sensor_sub[sensor_new].registerCallback()) {
-					PX4_DEBUG("selected sensor changed %d -> %d", _selected_sensor, sensor_new);
-					_selected_sensor = sensor_new;
+			for (int sensor_index = 0; sensor_index < MAX_SENSOR_COUNT; sensor_index++) {
+				sensor_accel_s data{};
+				_sensor_sub[sensor_index].copy(&data);
 
-					return true;
+				if (data.device_id == selection.accel_device_id) {
+					if (_sensor_sub[sensor_index].registerCallback()) {
+						PX4_DEBUG("selected sensor changed %d -> %d (%d)", _selected_sensor_index, sensor_index, selection.accel_device_id);
+
+						_selected_sensor_device_id = selection.accel_device_id;
+						_selected_sensor_index = sensor_index;
+						_sensor_correction_index = -1; // reset
+
+						SensorCorrectionsUpdate(true);
+
+						return true;
+					}
 				}
 			}
 		}
@@ -155,13 +188,13 @@ VehicleAcceleration::ParametersUpdate(bool force)
 		updateParams();
 
 		// get transformation matrix from sensor/board to body frame
-		const matrix::Dcmf board_rotation = get_rot_matrix((enum Rotation)_param_sens_board_rot.get());
+		const Dcmf board_rotation = get_rot_matrix((enum Rotation)_param_sens_board_rot.get());
 
 		// fine tune the rotation
 		const Dcmf board_rotation_offset(Eulerf(
-				math::radians(_param_sens_board_x_off.get()),
-				math::radians(_param_sens_board_y_off.get()),
-				math::radians(_param_sens_board_z_off.get())));
+				radians(_param_sens_board_x_off.get()),
+				radians(_param_sens_board_y_off.get()),
+				radians(_param_sens_board_z_off.get())));
 
 		_board_rotation = board_rotation_offset * board_rotation;
 	}
@@ -170,15 +203,15 @@ VehicleAcceleration::ParametersUpdate(bool force)
 void
 VehicleAcceleration::Run()
 {
-	// update corrections first to set _selected_sensor
-	bool sensor_select_update = SensorCorrectionsUpdate();
+	// check for updated selected sensor
+	SensorSelectionUpdate();
 
-	if (_sensor_sub[_selected_sensor].updated() || sensor_select_update) {
-		sensor_accel_s sensor_data;
-		_sensor_sub[_selected_sensor].copy(&sensor_data);
+	sensor_accel_s sensor_data;
 
+	if (_sensor_sub[_selected_sensor_index].update(&sensor_data)) {
 		ParametersUpdate();
 		SensorBiasUpdate();
+		SensorCorrectionsUpdate();
 
 		// get the sensor data and correct for thermal errors
 		const Vector3f val{sensor_data.x, sensor_data.y, sensor_data.z};
@@ -204,5 +237,11 @@ VehicleAcceleration::Run()
 void
 VehicleAcceleration::PrintStatus()
 {
-	PX4_INFO("selected sensor: %d", _selected_sensor);
+	PX4_INFO_RAW("\n");
+
+	PX4_INFO("selected sensor: %d (sensor_accel:%d)", _selected_sensor_device_id, _selected_sensor_index);
+
+	PX4_INFO("offsets: %.5f %.5f %.5f", (double)_offset(0), (double)_offset(1), (double)_offset(2));
+	PX4_INFO("scale: %.5f %.5f %.5f", (double)_scale(0), (double)_scale(1), (double)_scale(2));
+	PX4_INFO("bias: %.5f %.5f %.5f", (double)_bias(0), (double)_bias(1), (double)_bias(2));
 }

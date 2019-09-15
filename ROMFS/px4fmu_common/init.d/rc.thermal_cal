@@ -29,12 +29,17 @@ then
 	param set SYS_CAL_BARO 0
 fi
 
+if [ param compare TC_A_ENABLE 1 -o param compare TC_B_ENABLE 1 -o param compare TC_G_ENABLE 1 ]
+then
+	temperature_compensation start
+fi
+
 #
 # Start the thermal calibration cycle.
 #
 if [ "x$TEMP_CALIB_ARGS" != "x" ]
 then
-	send_event temperature_calibration ${TEMP_CALIB_ARGS}
+	temperature_compensation calibrate ${TEMP_CALIB_ARGS}
 fi
 
 unset TEMP_CALIB_ARGS

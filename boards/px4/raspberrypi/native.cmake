@@ -45,6 +45,7 @@ px4_add_board(
 		battery_status
 		rc_update
 		sensors
+		temperature_compensation
 		sih
 		#simulator
 		vmount
