@@ -48,6 +48,8 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/led_control.h>
+#include <uORB/topics/tune_control.h>
 
 class SafetyButton : public ModuleBase<SafetyButton>, public px4::ScheduledWorkItem
 {
@@ -81,6 +83,9 @@ private:
 	uORB::Subscription		_armed_sub{ORB_ID(actuator_armed)};
 	uORB::Publication<safety_s>	_to_safety{ORB_ID(safety)};
 	uORB::PublicationQueued<vehicle_command_s>	_to_command{ORB_ID(vehicle_command)};
+	uORB::PublicationQueued<led_control_s> _to_led_control{ORB_ID(led_control)};
+	uORB::Publication<tune_control_s> _to_tune_control{ORB_ID(tune_control)};
+
 
 	uint8_t				_button_counter{0};
 	uint8_t				_blink_counter{0};
