@@ -41,8 +41,6 @@
 
 #include "parameters.h"
 
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_baro.h>
 #include <drivers/drv_hrt.h>
@@ -54,7 +52,9 @@
 
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationQueued.hpp>
+#include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/sensor_preflight.h>
 #include <uORB/topics/sensor_correction.h>
 #include <uORB/topics/sensor_selection.h>
@@ -210,27 +210,6 @@ private:
 	 * @return true if a switch occured (could be for a non-critical reason)
 	 */
 	bool checkFailover(SensorData &sensor, const char *sensor_name, const uint64_t type);
-
-	/**
-	 * Apply a gyro calibration.
-	 *
-	 * @param h: reference to the DevHandle in use
-	 * @param gscale: the calibration data.
-	 * @param device: the device id of the sensor.
-	 * @return: true if config is ok
-	 */
-	bool applyGyroCalibration(DriverFramework::DevHandle &h, const struct gyro_calibration_s *gcal, const int device_id);
-
-	/**
-	 * Apply a accel calibration.
-	 *
-	 * @param h: reference to the DevHandle in use
-	 * @param ascale: the calibration data.
-	 * @param device: the device id of the sensor.
-	 * @return: true if config is ok
-	 */
-	bool applyAccelCalibration(DriverFramework::DevHandle &h, const struct accel_calibration_s *acal,
-				   const int device_id);
 
 	/**
 	 * Apply a mag calibration.

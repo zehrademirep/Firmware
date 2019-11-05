@@ -55,12 +55,12 @@
 #include <systemlib/mavlink_log.h>
 
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
 #include <drivers/device/integrator.h>
 
 #include <lib/conversion/rotation.h>
 
+#include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/parameter_update.h>
 
 #include <mpu6050/MPU6050.hpp>

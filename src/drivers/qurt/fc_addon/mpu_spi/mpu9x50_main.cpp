@@ -50,8 +50,6 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/parameter_update.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_hrt.h>
 

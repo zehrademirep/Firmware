@@ -55,7 +55,7 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_correction.h>
-#include <drivers/drv_gyro.h>
+#include <uORB/topics/sensor_gyro.h>
 #include <systemlib/mavlink_log.h>
 #include <parameters/param.h>
 #include <systemlib/err.h>
@@ -64,10 +64,19 @@ static const char *sensor_name = "gyro";
 
 static constexpr unsigned max_gyros = 3;
 
+struct gyro_calibration_s {
+	float	x_offset;
+	float	x_scale;
+	float	y_offset;
+	float	y_scale;
+	float	z_offset;
+	float	z_scale;
+};
+
 /// Data passed to calibration worker routine
 typedef struct  {
 	orb_advert_t		*mavlink_log_pub;
-	int32_t			device_id[max_gyros];
+	int32_t			device_id[max_gyros] {};
 	int			gyro_sensor_sub[max_gyros];
 	int			sensor_correction_sub;
 	struct gyro_calibration_s	gyro_scale[max_gyros];
@@ -224,12 +233,9 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 	worker_data.mavlink_log_pub = mavlink_log_pub;
 
-	struct gyro_calibration_s gyro_scale_zero;
-	gyro_scale_zero.x_offset = 0.0f;
+	gyro_calibration_s gyro_scale_zero{};
 	gyro_scale_zero.x_scale = 1.0f;
-	gyro_scale_zero.y_offset = 0.0f;
 	gyro_scale_zero.y_scale = 1.0f;
-	gyro_scale_zero.z_offset = 0.0f;
 	gyro_scale_zero.z_scale = 1.0f;
 
 	int device_prio_max = 0;
@@ -254,22 +260,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 		// Reset all offsets to 0 and scales to 1
 		(void)memcpy(&worker_data.gyro_scale[s], &gyro_scale_zero, sizeof(gyro_scale_zero));
-#ifdef __PX4_NUTTX
-		sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, s);
-		int fd = px4_open(str, 0);
 
-		if (fd >= 0) {
-			worker_data.device_id[s] = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
-			res = px4_ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gyro_scale_zero);
-			px4_close(fd);
-
-			if (res != PX4_OK) {
-				calibration_log_critical(mavlink_log_pub, CAL_ERROR_RESET_CAL_MSG, s);
-				return PX4_ERROR;
-			}
-		}
-
-#else
 		(void)sprintf(str, "CAL_GYRO%u_XOFF", s);
 		res = param_set_no_notification(param_find(str), &gyro_scale_zero.x_offset);
 
@@ -313,8 +304,6 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 		}
 
 		param_notify_changes();
-#endif
-
 	}
 
 	// We should not try to subscribe if the topic doesn't actually exist and can be counted.
@@ -336,27 +325,9 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 			sensor_gyro_s report{};
 			orb_copy(ORB_ID(sensor_gyro), worker_data.gyro_sensor_sub[cur_gyro], &report);
 
-#ifdef __PX4_NUTTX
-
-			// For NuttX, we get the UNIQUE device ID from the sensor driver via an IOCTL
-			// and match it up with the one from the uORB subscription, because the
-			// instance ordering of uORB and the order of the FDs may not be the same.
-
-			if (report.device_id == (uint32_t)worker_data.device_id[cur_gyro]) {
-				// Device IDs match, correct ORB instance for this gyro
-				found_cur_gyro = true;
-
-			} else {
-				orb_unsubscribe(worker_data.gyro_sensor_sub[cur_gyro]);
-			}
-
-#else
-
 			// For the DriverFramework drivers, we fill device ID (this is the first time) by copying one report.
 			worker_data.device_id[cur_gyro] = report.device_id;
 			found_cur_gyro = true;
-
-#endif
 		}
 
 		if (!found_cur_gyro) {
@@ -507,25 +478,6 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 				(void)sprintf(str, "CAL_GYRO%u_ID", uorb_index);
 				failed |= (PX4_OK != param_set_no_notification(param_find(str), &(worker_data.device_id[uorb_index])));
-
-#ifdef __PX4_NUTTX
-				/* apply new scaling and offsets */
-				(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, uorb_index);
-				int fd = px4_open(str, 0);
-
-				if (fd < 0) {
-					failed = true;
-					continue;
-				}
-
-				res = px4_ioctl(fd, GYROIOCSSCALE, (long unsigned int)&worker_data.gyro_scale[uorb_index]);
-				px4_close(fd);
-
-				if (res != PX4_OK) {
-					calibration_log_critical(mavlink_log_pub, CAL_ERROR_APPLY_CAL_MSG, 1);
-				}
-
-#endif
 			}
 		}
 

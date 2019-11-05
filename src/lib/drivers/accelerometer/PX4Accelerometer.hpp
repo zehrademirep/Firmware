@@ -34,53 +34,54 @@
 #pragma once
 
 #include <drivers/device/integrator.h>
-#include <drivers/drv_accel.h>
 #include <drivers/drv_hrt.h>
-#include <lib/cdev/CDev.hpp>
 #include <lib/conversion/rotation.h>
 #include <mathlib/math/filter/LowPassFilter2pVector3f.hpp>
 #include <px4_platform_common/module_params.h>
-#include <uORB/uORB.h>
 #include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_accel.h>
 
-class PX4Accelerometer : public cdev::CDev, public ModuleParams
+class PX4Accelerometer : public ModuleParams
 {
 
 public:
 	PX4Accelerometer(uint32_t device_id, uint8_t priority = ORB_PRIO_DEFAULT, enum Rotation rotation = ROTATION_NONE);
-	~PX4Accelerometer() override;
-
-	int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
+	~PX4Accelerometer() override = default;
 
 	void set_device_type(uint8_t devtype);
-	void set_error_count(uint64_t error_count) { _sensor_accel_pub.get().error_count = error_count; }
-	void set_scale(float scale) { _sensor_accel_pub.get().scaling = scale; }
-	void set_temperature(float temperature) { _sensor_accel_pub.get().temperature = temperature; }
-
+	void set_error_count(uint64_t error_count) { _error_count = error_count; }
 	void set_sample_rate(unsigned rate);
+	void set_scale(float scale) { _scaling = scale; }
+	void set_temperature(float temperature) { _temperature = temperature; }
 
-	void update(hrt_abstime timestamp, float x, float y, float z);
+	void update(hrt_abstime timestamp_sample, float x, float y, float z);
 
 	void print_status();
 
 private:
+	void set_filter_cutoff(float cutoff_freq);
 
-	void configure_filter(float cutoff_freq) { _filter.set_cutoff_frequency(_sample_rate, cutoff_freq); }
+	void UpdateCalibration();
 
-	uORB::PublicationMultiData<sensor_accel_s>	_sensor_accel_pub;
+	uORB::PublicationMulti<sensor_accel_s>	_sensor_pub;
+
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 
 	math::LowPassFilter2pVector3f _filter{1000, 100};
 	Integrator _integrator{4000, false};
 
+	uint64_t		_error_count{0};
+	uint32_t		_device_id{0};
 	const enum Rotation	_rotation;
-
+	float			_scaling{1.0f};
 	matrix::Vector3f	_calibration_scale{1.0f, 1.0f, 1.0f};
 	matrix::Vector3f	_calibration_offset{0.0f, 0.0f, 0.0f};
-
-	int			_class_device_instance{-1};
-
 	unsigned		_sample_rate{1000};
+	float			_temperature{0.0f};
+
+	bool			_calibrated{false};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::IMU_ACCEL_CUTOFF>) _param_imu_accel_cutoff

@@ -41,7 +41,6 @@ px4_add_board(
 	MODULES
 
 	SYSTEMCMDS
-		config
 		reboot
 		top
 		ver

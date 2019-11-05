@@ -46,7 +46,6 @@ px4_add_board(
 		airspeed_selector
 
 	SYSTEMCMDS
-		#config
 		esc_calib
 		led_control
 		mixer
