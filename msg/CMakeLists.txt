@@ -51,13 +51,13 @@ set(msg_files
 	debug_vect.msg
 	differential_pressure.msg
 	distance_sensor.msg
-	ekf2_innovations.msg
 	ekf2_timestamps.msg
 	ekf_gps_drift.msg
 	ekf_gps_position.msg
 	esc_report.msg
 	esc_status.msg
 	estimator_status.msg
+	estimator_innovations.msg
 	follow_target.msg
 	geofence_result.msg
 	gps_dump.msg

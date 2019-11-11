@@ -24,6 +24,15 @@ raw_messages = [x for x in raw_messages if not any(exception in x for exception 
 for index,m in enumerate(raw_messages):
 	topic_list = []
 	f = open(m,'r')
+	has_timestamp = False
+	for line in f:
+		# Check if the message has timestamp field, otherwise ignore it
+		if "uint64" in line and "timestamp" in line:
+			has_timestamp = True
+
+	if not has_timestamp:
+		continue
+
 	for line in f.readlines():
 		items = re.split('\s+', line.strip())
 
