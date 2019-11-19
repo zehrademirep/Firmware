@@ -2077,8 +2077,8 @@ int PX4FMU::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "peripheral_reset")) {
-		if (argc > 2) {
-			int reset_time = strtol(argv[2], 0, 0);
+		if (argc > 1) {
+			int reset_time = strtol(argv[1], nullptr, 0);
 			peripheral_reset(reset_time);
 
 		} else {

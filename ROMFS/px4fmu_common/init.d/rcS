@@ -282,6 +282,16 @@ else
 						#tune MLL8CDE Program PX4IO success
 						tune_control play -t 19
 						set IO_PRESENT yes
+					else
+						echo "attempting to reset 1"
+						fmu peripheral_reset 100
+						usleep 10000
+						px4io forceupdate 14662 ${IOFW}
+
+						echo "attempting to reset 2"
+						fmu peripheral_reset 100
+						usleep 10000
+						px4io forceupdate 14662 ${IOFW}
 					fi
 				fi
 

@@ -95,6 +95,7 @@ then
 	then
 		if ! $FMU_CMD mode_$FMU_MODE
 		then
+			echo "$FMU_CMD start failed"
 			echo "$FMU_CMD start failed" >> $LOG_FILE
 			# Error tune.
 			tune_control play -t 2
@@ -233,6 +234,7 @@ then
 				set FAILSAFE_AUX none
 			fi
 		else
+			echo "ERROR: Could not start: fmu mode_pwm"
 			echo "ERROR: Could not start: fmu mode_pwm" >> $LOG_FILE
 			tune_control play -t 20
 			set PWM_AUX_OUT none
