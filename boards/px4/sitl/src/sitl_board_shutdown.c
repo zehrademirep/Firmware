@@ -40,11 +40,6 @@
 #include <px4_platform_common/tasks.h>
 #include <board_config.h>
 
-int board_register_power_state_notification_cb(power_button_state_notification_t cb)
-{
-	return 0;
-}
-
 int board_shutdown()
 {
 	px4_systemreset(false);

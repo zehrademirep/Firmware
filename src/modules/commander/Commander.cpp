@@ -97,7 +97,6 @@ typedef enum VEHICLE_MODE_FLAG {
 
 /* Mavlink log uORB handle */
 static orb_advert_t mavlink_log_pub = nullptr;
-static orb_advert_t power_button_state_pub = nullptr;
 
 /* flags */
 static volatile bool thread_should_exit = false;	/**< daemon exit flag */
@@ -125,46 +124,6 @@ void *commander_low_prio_loop(void *arg);
 
 static void answer_command(const vehicle_command_s &cmd, unsigned result,
 			   uORB::PublicationQueued<vehicle_command_ack_s> &command_ack_pub);
-
-static int power_button_state_notification_cb(board_power_button_state_notification_e request)
-{
-	// Note: this can be called from IRQ handlers, so we publish a message that will be handled
-	// on the main thread of commander.
-	power_button_state_s button_state{};
-	button_state.timestamp = hrt_absolute_time();
-	const int ret = PWR_BUTTON_RESPONSE_SHUT_DOWN_PENDING;
-
-	switch (request) {
-	case PWR_BUTTON_IDEL:
-		button_state.event = power_button_state_s::PWR_BUTTON_STATE_IDEL;
-		break;
-
-	case PWR_BUTTON_DOWN:
-		button_state.event = power_button_state_s::PWR_BUTTON_STATE_DOWN;
-		break;
-
-	case PWR_BUTTON_UP:
-		button_state.event = power_button_state_s::PWR_BUTTON_STATE_UP;
-		break;
-
-	case PWR_BUTTON_REQUEST_SHUT_DOWN:
-		button_state.event = power_button_state_s::PWR_BUTTON_STATE_REQUEST_SHUTDOWN;
-		break;
-
-	default:
-		PX4_ERR("unhandled power button state: %i", (int)request);
-		return ret;
-	}
-
-	if (power_button_state_pub != nullptr) {
-		orb_publish(ORB_ID(power_button_state), power_button_state_pub, &button_state);
-
-	} else {
-		PX4_ERR("power_button_state_pub not properly initialized");
-	}
-
-	return ret;
-}
 
 static bool send_vehicle_command(uint16_t cmd, float param1 = NAN, float param2 = NAN, float param3 = NAN,
 				 float param4 = NAN, float param5 = NAN, float param6 = NAN, float param7 = NAN)
@@ -1179,22 +1138,6 @@ Commander::run()
 	if (buzzer_init() != OK) {
 		PX4_WARN("Buzzer init failed");
 	}
-
-	{
-		// we need to do an initial publication to make sure uORB allocates the buffer, which cannot happen
-		// in IRQ context.
-		power_button_state_s button_state{};
-		button_state.timestamp = hrt_absolute_time();
-		button_state.event = 0xff;
-		power_button_state_pub = orb_advertise(ORB_ID(power_button_state), &button_state);
-
-		_power_button_state_sub.copy(&button_state);
-	}
-
-	if (board_register_power_state_notification_cb(power_button_state_notification_cb) != 0) {
-		PX4_ERR("Failed to register power notification callback");
-	}
-
 
 	get_circuit_breaker_params();
 
