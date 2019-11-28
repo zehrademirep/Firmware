@@ -115,6 +115,7 @@ public:
 
 private:
 	int getRangeSubIndex(); ///< get subscription index of first downward-facing range sensor
+	void fillGpsMsgWithVehicleGpsPosData(gps_message &msg, const vehicle_gps_position_s &data);
 
 	PreFlightChecker _preflt_checker;
 	void runPreFlightChecks(float dt, const filter_control_status_u &control_status,
@@ -374,8 +375,8 @@ private:
 		(ParamExtFloat<px4::params::EKF2_REQ_EPV>) _param_ekf2_req_epv,	///< maximum acceptable vert position error (m)
 		(ParamExtFloat<px4::params::EKF2_REQ_SACC>) _param_ekf2_req_sacc,	///< maximum acceptable speed error (m/s)
 		(ParamExtInt<px4::params::EKF2_REQ_NSATS>) _param_ekf2_req_nsats,	///< minimum acceptable satellite count
-		(ParamExtFloat<px4::params::EKF2_REQ_GDOP>)
-		_param_ekf2_req_gdop,	///< maximum acceptable geometric dilution of precision
+		(ParamExtFloat<px4::params::EKF2_REQ_PDOP>)
+		_param_ekf2_req_pdop,	///< maximum acceptable position dilution of precision
 		(ParamExtFloat<px4::params::EKF2_REQ_HDRIFT>)
 		_param_ekf2_req_hdrift,	///< maximum acceptable horizontal drift speed (m/s)
 		(ParamExtFloat<px4::params::EKF2_REQ_VDRIFT>) _param_ekf2_req_vdrift,	///< maximum acceptable vertical drift speed (m/s)
@@ -522,7 +523,8 @@ private:
 		(ParamExtFloat<px4::params::EKF2_MOVE_TEST>)
 		_param_ekf2_move_test,	///< scaling applied to IMU data thresholds used to determine if the vehicle is static or moving.
 
-		(ParamFloat<px4::params::EKF2_REQ_GPS_H>) _param_ekf2_req_gps_h	///< Required GPS health time
+		(ParamFloat<px4::params::EKF2_REQ_GPS_H>) _param_ekf2_req_gps_h, ///< Required GPS health time
+		(ParamExtInt<px4::params::EKF2_MAG_CHECK>) _param_ekf2_mag_check ///< Mag field strength check
 
 	)
 
@@ -579,7 +581,7 @@ Ekf2::Ekf2(bool replay_mode):
 	_param_ekf2_req_epv(_params->req_vacc),
 	_param_ekf2_req_sacc(_params->req_sacc),
 	_param_ekf2_req_nsats(_params->req_nsats),
-	_param_ekf2_req_gdop(_params->req_gdop),
+	_param_ekf2_req_pdop(_params->req_pdop),
 	_param_ekf2_req_hdrift(_params->req_hdrift),
 	_param_ekf2_req_vdrift(_params->req_vdrift),
 	_param_ekf2_aid_mask(_params->fusion_mode),
@@ -627,7 +629,8 @@ Ekf2::Ekf2(bool replay_mode):
 	_param_ekf2_drag_noise(_params->drag_noise),
 	_param_ekf2_bcoef_x(_params->bcoef_x),
 	_param_ekf2_bcoef_y(_params->bcoef_y),
-	_param_ekf2_move_test(_params->is_moving_scaler)
+	_param_ekf2_move_test(_params->is_moving_scaler),
+	_param_ekf2_mag_check(_params->check_mag_strength)
 {
 	// initialise parameter cache
 	updateParams();
@@ -926,24 +929,7 @@ void Ekf2::Run()
 			vehicle_gps_position_s gps;
 
 			if (_gps_subs[0].copy(&gps)) {
-				_gps_state[0].time_usec = gps.timestamp;
-				_gps_state[0].lat = gps.lat;
-				_gps_state[0].lon = gps.lon;
-				_gps_state[0].alt = gps.alt;
-				_gps_state[0].yaw = gps.heading;
-				_gps_state[0].yaw_offset = gps.heading_offset;
-				_gps_state[0].fix_type = gps.fix_type;
-				_gps_state[0].eph = gps.eph;
-				_gps_state[0].epv = gps.epv;
-				_gps_state[0].sacc = gps.s_variance_m_s;
-				_gps_state[0].vel_m_s = gps.vel_m_s;
-				_gps_state[0].vel_ned[0] = gps.vel_n_m_s;
-				_gps_state[0].vel_ned[1] = gps.vel_e_m_s;
-				_gps_state[0].vel_ned[2] = gps.vel_d_m_s;
-				_gps_state[0].vel_ned_valid = gps.vel_ned_valid;
-				_gps_state[0].nsats = gps.satellites_used;
-				//TODO: add gdop to gps topic
-				_gps_state[0].gdop = 0.0f;
+				fillGpsMsgWithVehicleGpsPosData(_gps_state[0], gps);
 				_gps_alttitude_ellipsoid[0] = gps.alt_ellipsoid;
 
 				ekf2_timestamps.gps_timestamp_rel = (int16_t)((int64_t)gps.timestamp / 100 - (int64_t)ekf2_timestamps.timestamp / 100);
@@ -957,24 +943,7 @@ void Ekf2::Run()
 			vehicle_gps_position_s gps;
 
 			if (_gps_subs[1].copy(&gps)) {
-				_gps_state[1].time_usec = gps.timestamp;
-				_gps_state[1].lat = gps.lat;
-				_gps_state[1].lon = gps.lon;
-				_gps_state[1].alt = gps.alt;
-				_gps_state[1].yaw = gps.heading;
-				_gps_state[1].yaw_offset = gps.heading_offset;
-				_gps_state[1].fix_type = gps.fix_type;
-				_gps_state[1].eph = gps.eph;
-				_gps_state[1].epv = gps.epv;
-				_gps_state[1].sacc = gps.s_variance_m_s;
-				_gps_state[1].vel_m_s = gps.vel_m_s;
-				_gps_state[1].vel_ned[0] = gps.vel_n_m_s;
-				_gps_state[1].vel_ned[1] = gps.vel_e_m_s;
-				_gps_state[1].vel_ned[2] = gps.vel_d_m_s;
-				_gps_state[1].vel_ned_valid = gps.vel_ned_valid;
-				_gps_state[1].nsats = gps.satellites_used;
-				//TODO: add gdop to gps topic
-				_gps_state[1].gdop = 0.0f;
+				fillGpsMsgWithVehicleGpsPosData(_gps_state[1], gps);
 				_gps_alttitude_ellipsoid[1] = gps.alt_ellipsoid;
 			}
 		}
@@ -1008,12 +977,8 @@ void Ekf2::Run()
 				}
 
 				// Only use selected receiver data if it has been updated
-				if ((gps1_updated && _gps_select_index == 0) || (gps2_updated && _gps_select_index == 1)) {
-					_gps_new_output_data = true;
-
-				} else {
-					_gps_new_output_data = false;
-				}
+				_gps_new_output_data = (gps1_updated && _gps_select_index == 0) ||
+						       (gps2_updated && _gps_select_index == 1);
 			}
 
 			if (_gps_new_output_data) {
@@ -1541,6 +1506,7 @@ void Ekf2::Run()
 			status.pre_flt_fail_innov_vel_horiz = _preflt_checker.hasHorizVelFailed();
 			status.pre_flt_fail_innov_vel_vert = _preflt_checker.hasVertVelFailed();
 			status.pre_flt_fail_innov_height = _preflt_checker.hasHeightFailed();
+			status.pre_flt_fail_mag_field_disturbed = control_status.flags.mag_field_disturbed;
 
 			_estimator_status_pub.publish(status);
 
@@ -1675,6 +1641,27 @@ void Ekf2::Run()
 		// publish ekf2_timestamps
 		_ekf2_timestamps_pub.publish(ekf2_timestamps);
 	}
+}
+
+void Ekf2::fillGpsMsgWithVehicleGpsPosData(gps_message &msg, const vehicle_gps_position_s &data)
+{
+	msg.time_usec = data.timestamp;
+	msg.lat = data.lat;
+	msg.lon = data.lon;
+	msg.alt = data.alt;
+	msg.yaw = data.heading;
+	msg.yaw_offset = data.heading_offset;
+	msg.fix_type = data.fix_type;
+	msg.eph = data.eph;
+	msg.epv = data.epv;
+	msg.sacc = data.s_variance_m_s;
+	msg.vel_m_s = data.vel_m_s;
+	msg.vel_ned[0] = data.vel_n_m_s;
+	msg.vel_ned[1] = data.vel_e_m_s;
+	msg.vel_ned[2] = data.vel_d_m_s;
+	msg.vel_ned_valid = data.vel_ned_valid;
+	msg.nsats = data.satellites_used;
+	msg.pdop = sqrtf(data.hdop * data.hdop + data.vdop * data.vdop);
 }
 
 void Ekf2::runPreFlightChecks(const float dt,
@@ -2044,7 +2031,7 @@ void Ekf2::update_gps_blend_states()
 	_gps_blended_state.vel_ned[2] = 0.0f;
 	_gps_blended_state.vel_ned_valid = true;
 	_gps_blended_state.nsats = 0;
-	_gps_blended_state.gdop = FLT_MAX;
+	_gps_blended_state.pdop = FLT_MAX;
 
 	_blended_antenna_offset.zero();
 
@@ -2083,9 +2070,9 @@ void Ekf2::update_gps_blend_states()
 				_gps_blended_state.sacc = _gps_state[i].sacc;
 			}
 
-			if (_gps_state[i].gdop > 0
-			    && _gps_state[i].gdop < _gps_blended_state.gdop) {
-				_gps_blended_state.gdop = _gps_state[i].gdop;
+			if (_gps_state[i].pdop > 0
+			    && _gps_state[i].pdop < _gps_blended_state.pdop) {
+				_gps_blended_state.pdop = _gps_state[i].pdop;
 			}
 
 			if (_gps_state[i].nsats > 0
@@ -2269,7 +2256,7 @@ void Ekf2::apply_gps_offsets()
 		_gps_output[i].eph		= _gps_state[i].eph;
 		_gps_output[i].epv		= _gps_state[i].epv;
 		_gps_output[i].sacc		= _gps_state[i].sacc;
-		_gps_output[i].gdop		= _gps_state[i].gdop;
+		_gps_output[i].pdop		= _gps_state[i].pdop;
 		_gps_output[i].nsats		= _gps_state[i].nsats;
 		_gps_output[i].vel_ned_valid	= _gps_state[i].vel_ned_valid;
 		_gps_output[i].yaw		= _gps_state[i].yaw;
@@ -2331,7 +2318,7 @@ void Ekf2::calc_gps_blend_output()
 	_gps_output[GPS_BLENDED_INSTANCE].eph		= _gps_blended_state.eph;
 	_gps_output[GPS_BLENDED_INSTANCE].epv		= _gps_blended_state.epv;
 	_gps_output[GPS_BLENDED_INSTANCE].sacc		= _gps_blended_state.sacc;
-	_gps_output[GPS_BLENDED_INSTANCE].gdop		= _gps_blended_state.gdop;
+	_gps_output[GPS_BLENDED_INSTANCE].pdop		= _gps_blended_state.pdop;
 	_gps_output[GPS_BLENDED_INSTANCE].nsats		= _gps_blended_state.nsats;
 	_gps_output[GPS_BLENDED_INSTANCE].vel_ned_valid	= _gps_blended_state.vel_ned_valid;
 	_gps_output[GPS_BLENDED_INSTANCE].yaw		= _gps_blended_state.yaw;
