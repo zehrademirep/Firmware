@@ -64,7 +64,7 @@ class ADC : public cdev::CDev, public px4::ScheduledWorkItem
 {
 public:
 	ADC(uint32_t base_address, uint32_t channels);
-	~ADC();
+	virtual ~ADC();
 
 	virtual int		init();
 

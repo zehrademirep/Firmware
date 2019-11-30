@@ -2365,8 +2365,7 @@ int Ekf2::task_spawn(int argc, char *argv[])
 	Ekf2 *instance = new Ekf2(replay_mode);
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		instance->set_task_id(task_id_is_work_queue);
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -2377,8 +2376,6 @@ int Ekf2::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
 
 	return PX4_ERROR;
 }

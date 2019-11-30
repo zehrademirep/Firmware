@@ -140,15 +140,10 @@ pipeline {
                 }
                 stage("stop modules") {
                   steps {
-                    // manually stop everything
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "modules stop-all"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "commander stop"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mavlink stop-all"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ekf2 stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "navigator stop"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dataman stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "logger stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "fmu stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "px4io stop"'
                   }
                 }
                 stage("reset") {
@@ -231,14 +226,10 @@ pipeline {
                 }
                 stage("stop modules") {
                   steps {
-                    // manually stop everything
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "modules stop-all"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "commander stop"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mavlink stop-all"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ekf2 stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "navigator stop"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dataman stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "logger stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "fmu stop"'
                   }
                 }
                 stage("reset") {
@@ -321,15 +312,10 @@ pipeline {
                 }
                 stage("stop modules") {
                   steps {
-                    // manually stop everything
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "modules stop-all"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "commander stop"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mavlink stop-all"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ekf2 stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "navigator stop"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dataman stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "logger stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "fmu stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "px4io stop"'
                   }
                 }
                 stage("reset") {
@@ -412,15 +398,10 @@ pipeline {
                 }
                 stage("stop modules") {
                   steps {
-                    // manually stop everything
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "modules stop-all"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "commander stop"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mavlink stop-all"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ekf2 stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "navigator stop"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dataman stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "logger stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "fmu stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "px4io stop"'
                   }
                 }
                 stage("reset") {
@@ -503,15 +484,10 @@ pipeline {
                 }
                 stage("stop modules") {
                   steps {
-                    // manually stop everything
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "modules stop-all"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "commander stop"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "mavlink stop-all"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "ekf2 stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "navigator stop"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "dataman stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "logger stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "fmu stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "px4io stop"'
                   }
                 }
                 stage("reset") {
@@ -594,14 +570,10 @@ pipeline {
                 }
                 stage("stop modules") {
                   steps {
-                    // manually stop everything
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "modules stop-all"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "commander stop"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "mavlink stop-all"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "ekf2 stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "navigator stop"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "dataman stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "logger stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "fmu stop"'
                   }
                 }
                 stage("reset") {
@@ -685,15 +657,10 @@ pipeline {
                 }
                 stage("stop modules") {
                   steps {
-                    // manually stop everything
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "modules stop-all"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "commander stop"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mavlink stop-all"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ekf2 stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "navigator stop"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dataman stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "logger stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "fmu stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "px4io stop"'
                   }
                 }
                 stage("reset") {
@@ -775,15 +742,10 @@ pipeline {
                 }
                 stage("stop modules") {
                   steps {
-                    // manually stop everything
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "modules stop-all"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "commander stop"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mavlink stop-all"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ekf2 stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "navigator stop"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dataman stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "logger stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "fmu stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "px4io stop"'
                   }
                 }
                 stage("reset") {
@@ -866,14 +828,10 @@ pipeline {
                 }
                 stage("stop modules") {
                   steps {
-                    // manually stop everything
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "modules stop-all"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "commander stop"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mavlink stop-all"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ekf2 stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "navigator stop"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dataman stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "logger stop"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "fmu stop"'
                   }
                 }
                 stage("reset") {
@@ -929,6 +887,7 @@ void statusFTDI() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /proc"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mavlink status"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mavlink status streams"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "modules status"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mtd status"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param show"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param status"'
@@ -968,6 +927,7 @@ void statusSEGGER() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "ls /proc"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "mavlink status"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "mavlink status streams"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "modules status"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "mtd status"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "param show"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "param status"'

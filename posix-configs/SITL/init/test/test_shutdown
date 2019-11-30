@@ -66,19 +66,9 @@ uorb status
 
 # stop all
 echo "Stopping all modules"
+modules stop-all
 logger stop
-pwm_out_sim stop
-mc_rate_control stop
-mc_att_control stop
-fw_att_control stop
-mc_pos_control stop
-fw_pos_control_l1 stop
-navigator stop
 commander stop
-land_detector stop
-ekf2 stop
-airspeed_selector stop
-sensors stop
 
 sleep 2
 
@@ -87,6 +77,7 @@ tone_alarm stop
 gpssim stop
 
 dataman stop
+sleep 2
 #uorb stop
 
 shutdown
