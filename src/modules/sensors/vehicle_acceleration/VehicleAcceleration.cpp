@@ -65,7 +65,15 @@ VehicleAcceleration::Start()
 	// needed to change the active sensor if the primary stops updating
 	_sensor_selection_sub.registerCallback();
 
-	return SensorCorrectionsUpdate(true);
+	if (SensorSelectionUpdate(true)) {
+		SensorCorrectionsUpdate(true);
+		ParametersUpdate(true);
+		SensorBiasUpdate(true);
+
+		return true;
+	}
+
+	return false;
 }
 
 void
@@ -94,7 +102,7 @@ VehicleAcceleration::SensorBiasUpdate(bool force)
 	}
 }
 
-bool
+void
 VehicleAcceleration::SensorCorrectionsUpdate(bool force)
 {
 	// check if the selected sensor has updated
@@ -131,8 +139,6 @@ VehicleAcceleration::SensorCorrectionsUpdate(bool force)
 			_scale = Vector3f{1.0f, 1.0f, 1.0f};
 		}
 	}
-
-	return false;
 }
 
 bool
@@ -152,19 +158,16 @@ VehicleAcceleration::SensorSelectionUpdate(bool force)
 				sub.unregisterCallback();
 			}
 
-			for (int sensor_index = 0; sensor_index < MAX_SENSOR_COUNT; sensor_index++) {
-				sensor_accel_s data{};
-				_sensor_sub[sensor_index].copy(&data);
+			for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
+				sensor_accel_s report{};
+				_sensor_sub[i].copy(&report);
 
-				if (data.device_id == selection.accel_device_id) {
-					if (_sensor_sub[sensor_index].registerCallback()) {
-						PX4_DEBUG("selected sensor changed %d -> %d (%d)", _selected_sensor_index, sensor_index, selection.accel_device_id);
+				if ((report.device_id != 0) && (report.device_id == _selected_sensor_device_id)) {
+					if (_sensor_sub[i].registerCallback()) {
+						PX4_DEBUG("selected sensor changed %d -> %d", _selected_sensor_index, i);
 
-						_selected_sensor_device_id = selection.accel_device_id;
-						_selected_sensor_index = sensor_index;
-						_sensor_correction_index = -1; // reset
-
-						SensorCorrectionsUpdate(true);
+						// record selected sensor
+						_selected_sensor_index = i;
 
 						return true;
 					}
@@ -204,32 +207,28 @@ void
 VehicleAcceleration::Run()
 {
 	// check for updated selected sensor
-	SensorSelectionUpdate();
+	bool sensor_select_update = SensorSelectionUpdate();
+	SensorCorrectionsUpdate(sensor_select_update);
+	ParametersUpdate();
+	SensorBiasUpdate();
 
 	sensor_accel_s sensor_data;
 
-	if (_sensor_sub[_selected_sensor_index].update(&sensor_data)) {
-		ParametersUpdate();
-		SensorBiasUpdate();
-		SensorCorrectionsUpdate();
+	if (_sensor_sub[_selected_sensor_index].updated() || sensor_select_update) {
+		_sensor_sub[_selected_sensor_index].copy(&sensor_data);
 
-		// get the sensor data and correct for thermal errors
 		const Vector3f val{sensor_data.x, sensor_data.y, sensor_data.z};
 
-		// apply offsets and scale
-		Vector3f accel{(val - _offset).emult(_scale)};
-
-		// rotate corrected measurements from sensor to body frame
-		accel = _board_rotation * accel;
-
+		// apply offsets and scale (thermal correction)
+		// rotate corrected measurements from sensor to vehicle body frame
 		// correct for in-run bias errors
-		accel -= _bias;
+		const Vector3f accel = _board_rotation * (val - _offset).emult(_scale) - _bias;
 
-		vehicle_acceleration_s out{};
+		// publish vehicle_acceleration
+		vehicle_acceleration_s out;
 		out.timestamp_sample = sensor_data.timestamp;
 		accel.copyTo(out.xyz);
 		out.timestamp = hrt_absolute_time();
-
 		_vehicle_acceleration_pub.publish(out);
 	}
 }

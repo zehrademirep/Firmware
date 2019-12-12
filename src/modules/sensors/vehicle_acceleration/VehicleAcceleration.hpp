@@ -56,7 +56,7 @@ class VehicleAcceleration : public ModuleParams, public px4::WorkItem
 public:
 
 	VehicleAcceleration();
-	virtual ~VehicleAcceleration();
+	~VehicleAcceleration() override;;
 
 	void	Run() override;
 
@@ -69,7 +69,7 @@ private:
 
 	void	ParametersUpdate(bool force = false);
 	void	SensorBiasUpdate(bool force = false);
-	bool	SensorCorrectionsUpdate(bool force = false);
+	void	SensorCorrectionsUpdate(bool force = false);
 	bool	SensorSelectionUpdate(bool force = false);
 
 	static constexpr int MAX_SENSOR_COUNT = 3;
@@ -103,7 +103,7 @@ private:
 	matrix::Vector3f			_bias;
 
 	uint32_t				_selected_sensor_device_id{0};
-	int8_t					_selected_sensor_index{-1};
+	uint8_t					_selected_sensor_index{0};
 	int8_t					_sensor_correction_index{-1};
 
 };
