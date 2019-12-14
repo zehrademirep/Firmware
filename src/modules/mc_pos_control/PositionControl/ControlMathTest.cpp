@@ -66,7 +66,7 @@ TEST(ControlMathTest, ThrottleAttitudeMapping)
 	 * order is: 1. roll, 2. pitch, 3. yaw */
 	thr = Vector3f(0.0f, 0.0f, 1.0f);
 	thrustToAttitude(thr, yaw, att);
-	EXPECT_NEAR(att.roll_body, -M_PI_F, 1e-4);
+	EXPECT_NEAR(att.roll_body, -M_PI_F, 1e-4f);
 	EXPECT_EQ(att.pitch_body, 0);
 	EXPECT_EQ(att.yaw_body, M_PI_2_F);
 	EXPECT_EQ(att.thrust_body[2], -1.f);
@@ -176,4 +176,22 @@ TEST(ControlMathTest, CrossSphereLine)
 	retval = ControlMath::cross_sphere_line(matrix::Vector3f(0.0f, 2.0f, 2.5f), 1.0f, prev, curr, res);
 	EXPECT_FALSE(retval);
 	EXPECT_EQ(res, Vector3f(0.f, 0.f, 2.f));
+}
+
+TEST(ControlMathTest, addIfNotNan)
+{
+	float v = 1.f;
+	// regular addition
+	ControlMath::addIfNotNan(v, 2.f);
+	EXPECT_EQ(v, 3.f);
+	// addition is NAN and has no influence
+	ControlMath::addIfNotNan(v, NAN);
+	EXPECT_EQ(v, 3.f);
+	v = NAN;
+	// both summands are NAN
+	ControlMath::addIfNotNan(v, NAN);
+	EXPECT_TRUE(isnan(v));
+	// regular value gets added to NAN and overwrites it
+	ControlMath::addIfNotNan(v, 3.f);
+	EXPECT_EQ(v, 3.f);
 }
