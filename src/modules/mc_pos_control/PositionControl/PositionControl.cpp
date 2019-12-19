@@ -79,12 +79,12 @@ bool PositionControl::setInputSetpoint(const vehicle_local_position_setpoint_s &
 	_thr_sp = Vector3f(setpoint.thrust);
 	_yaw_sp = setpoint.yaw;
 	_yawspeed_sp = setpoint.yawspeed;
-	bool mapping_succeeded = _interfaceMapping();
+	bool mapping_succeeded = true;//_interfaceMapping();
 
 	// If full manual is required (thrust already generated), don't run position/velocity
 	// controller and just return thrust.
-	_skip_controller = PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1))
-			   && PX4_ISFINITE(_thr_sp(2));
+	_skip_controller = false; //PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1))
+	//    && PX4_ISFINITE(_thr_sp(2));
 
 	return mapping_succeeded;
 }
@@ -110,8 +110,15 @@ void PositionControl::setConstraints(const vehicle_constraints_s &constraints)
 	// ignore _constraints.speed_xy TODO: remove it completely as soon as no task uses it anymore to avoid confusion
 }
 
-void PositionControl::update(const float dt)
+bool PositionControl::update(const float dt)
 {
+	bool valid = true;
+
+	// x and y setpoints always come in pairs
+	valid = valid && (PX4_ISFINITE(_pos_sp(0)) == PX4_ISFINITE(_pos_sp(1)));
+	valid = valid && (PX4_ISFINITE(_vel_sp(0)) == PX4_ISFINITE(_vel_sp(1)));
+	valid = valid && (PX4_ISFINITE(_thr_sp(0)) == PX4_ISFINITE(_thr_sp(1)));
+
 	if (_skip_controller) {
 		// Already received a valid thrust set-point.
 		// Limit the thrust vector.
@@ -128,7 +135,7 @@ void PositionControl::update(const float dt)
 		_pos_sp = _pos;
 		_vel_sp = _vel;
 		_acc_sp = _vel_dot;
-		return;
+		return true;
 	}
 
 	_positionControl();
@@ -136,6 +143,8 @@ void PositionControl::update(const float dt)
 
 	_yawspeed_sp = PX4_ISFINITE(_yawspeed_sp) ? _yawspeed_sp : 0.f;
 	_yaw_sp = PX4_ISFINITE(_yaw_sp) ? _yaw_sp : _yaw; // TODO: better way to disable yaw control
+
+	return valid && _updateSuccessful();
 }
 
 bool PositionControl::_interfaceMapping()
@@ -285,7 +294,7 @@ void PositionControl::_velocityControl(const float dt)
 	Vector3f thr_sp_velocity = vel_error.emult(_gain_vel_p) + _vel_int + _vel_dot.emult(_gain_vel_d);
 	thr_sp_velocity -= Vector3f(0.f, 0.f, _hover_thrust);
 
-	if (PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1))) {
+	if (PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1)) && PX4_ISFINITE(thr_sp_velocity(2))) {
 		// Thrust set-point in NE-direction from FlightTaskManualAltitude is provided. Scaling by the maximum tilt is required.
 		_thr_sp.xy() = Vector2f(_thr_sp) * fabsf(thr_sp_velocity(2)) * tanf(_constraints.tilt);
 	}
@@ -336,6 +345,26 @@ void PositionControl::_velocityControl(const float dt)
 	_vel_int(2) = math::min(fabsf(_vel_int(2)), _lim_thr_max) * math::sign(_vel_int(2));
 }
 
+bool PositionControl::_updateSuccessful()
+{
+	bool valid = true;
+
+	// For each controlled state the estimate has to be valid
+	for (int i = 0; i <= 2; i++) {
+		if (PX4_ISFINITE(_pos_sp(i))) {
+			valid = valid && PX4_ISFINITE(_pos(i));
+		}
+
+		if (PX4_ISFINITE(_vel_sp(i))) {
+			valid = valid && PX4_ISFINITE(_vel(i)) && PX4_ISFINITE(_vel_dot(i));
+		}
+	}
+
+	// There has to be a valid output thrust setpoint otherwise there was no
+	// setpoint-state pair for each axis that can get controlled
+	valid = valid && PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1)) && PX4_ISFINITE(_thr_sp(2));
+	return valid;
+}
 
 void PositionControl::getLocalPositionSetpoint(vehicle_local_position_setpoint_s &local_position_setpoint) const
 {

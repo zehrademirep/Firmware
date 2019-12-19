@@ -147,9 +147,9 @@ public:
 	 * @see _yaw_sp
 	 * @see _yawspeed_sp
 	 * @param dt time in seconds since last iteration
-	 * @return true if output setpoint is executable, false if not
+	 * @return true if update succeeded and output setpoint is executable, false if not
 	 */
-	void update(const float dt);
+	bool update(const float dt);
 
 	/**
 	 * Set the integral term in xy to 0.
@@ -179,6 +179,7 @@ private:
 	 * @return true if mapping succeeded.
 	 */
 	bool _interfaceMapping();
+	bool _updateSuccessful();
 
 	void _positionControl(); ///< Position proportional control
 	void _velocityControl(const float dt); ///< Velocity PID control
