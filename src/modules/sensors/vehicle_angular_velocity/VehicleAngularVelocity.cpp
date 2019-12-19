@@ -33,27 +33,20 @@
 
 #include "VehicleAngularVelocity.hpp"
 
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 
 using namespace matrix;
 using namespace time_literals;
 
 VehicleAngularVelocity::VehicleAngularVelocity() :
 	ModuleParams(nullptr),
-	WorkItem(px4::wq_configurations::rate_ctrl),
-	_cycle_perf(perf_alloc(PC_ELAPSED, "vehicle_angular_velocity: cycle time")),
-	_interval_perf(perf_alloc(PC_INTERVAL, "vehicle_angular_velocity: interval")),
-	_sensor_latency_perf(perf_alloc(PC_ELAPSED, "vehicle_angular_velocity: sensor latency"))
+	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
 {
 }
 
 VehicleAngularVelocity::~VehicleAngularVelocity()
 {
 	Stop();
-
-	perf_free(_cycle_perf);
-	perf_free(_interval_perf);
-	perf_free(_sensor_latency_perf);
 }
 
 bool
@@ -69,7 +62,7 @@ VehicleAngularVelocity::Start()
 	SensorBiasUpdate(true);
 
 	// needed to change the active sensor if the primary stops updating
-	_sensor_selection_sub.register_callback();
+	_sensor_selection_sub.registerCallback();
 
 	return SensorCorrectionsUpdate(true);
 }
@@ -81,10 +74,10 @@ VehicleAngularVelocity::Stop()
 
 	// clear all registered callbacks
 	for (auto &sub : _sensor_sub) {
-		sub.unregister_callback();
+		sub.unregisterCallback();
 	}
 
-	_sensor_selection_sub.unregister_callback();
+	_sensor_selection_sub.unregisterCallback();
 }
 
 void
@@ -143,11 +136,11 @@ VehicleAngularVelocity::SensorCorrectionsUpdate(bool force)
 			if (corrections.selected_gyro_instance < MAX_SENSOR_COUNT) {
 				// clear all registered callbacks
 				for (auto &sub : _sensor_control_sub) {
-					sub.unregister_callback();
+					sub.unregisterCallback();
 				}
 
 				for (auto &sub : _sensor_sub) {
-					sub.unregister_callback();
+					sub.unregisterCallback();
 				}
 
 				const int sensor_new = corrections.selected_gyro_instance;
@@ -159,7 +152,7 @@ VehicleAngularVelocity::SensorCorrectionsUpdate(bool force)
 					_sensor_control_sub[i].copy(&report);
 
 					if ((report.device_id != 0) && (report.device_id == _selected_sensor_device_id)) {
-						if (_sensor_control_sub[i].register_callback()) {
+						if (_sensor_control_sub[i].registerCallback()) {
 							PX4_DEBUG("selected sensor (control) changed %d -> %d", _selected_sensor, i);
 							_selected_sensor_control = i;
 
@@ -176,7 +169,7 @@ VehicleAngularVelocity::SensorCorrectionsUpdate(bool force)
 				// otherwise fallback to using sensor_gyro (legacy that will be removed)
 				_sensor_control_available = false;
 
-				if (_sensor_sub[sensor_new].register_callback()) {
+				if (_sensor_sub[sensor_new].registerCallback()) {
 					PX4_DEBUG("selected sensor changed %d -> %d", _selected_sensor, sensor_new);
 					_selected_sensor = sensor_new;
 
@@ -216,18 +209,14 @@ VehicleAngularVelocity::ParametersUpdate(bool force)
 void
 VehicleAngularVelocity::Run()
 {
-	perf_begin(_cycle_perf);
-	perf_count(_interval_perf);
-
 	// update corrections first to set _selected_sensor
-	SensorCorrectionsUpdate();
+	bool sensor_select_update = SensorCorrectionsUpdate();
 
 	if (_sensor_control_available) {
 		//  using sensor_gyro_control is preferred, but currently not all drivers (eg df_*) provide sensor_gyro_control
-		sensor_gyro_control_s sensor_data;
-
-		if (_sensor_control_sub[_selected_sensor].update(&sensor_data)) {
-			perf_set_elapsed(_sensor_latency_perf, hrt_elapsed_time(&sensor_data.timestamp));
+		if (_sensor_control_sub[_selected_sensor].updated() || sensor_select_update) {
+			sensor_gyro_control_s sensor_data;
+			_sensor_control_sub[_selected_sensor].copy(&sensor_data);
 
 			ParametersUpdate();
 			SensorBiasUpdate();
@@ -251,10 +240,9 @@ VehicleAngularVelocity::Run()
 
 	} else {
 		// otherwise fallback to using sensor_gyro (legacy that will be removed)
-		sensor_gyro_s sensor_data;
-
-		if (_sensor_sub[_selected_sensor].update(&sensor_data)) {
-			perf_set_elapsed(_sensor_latency_perf, hrt_elapsed_time(&sensor_data.timestamp));
+		if (_sensor_sub[_selected_sensor].updated() || sensor_select_update) {
+			sensor_gyro_s sensor_data;
+			_sensor_sub[_selected_sensor].copy(&sensor_data);
 
 			ParametersUpdate();
 			SensorBiasUpdate();
@@ -279,8 +267,6 @@ VehicleAngularVelocity::Run()
 			_vehicle_angular_velocity_pub.publish(angular_velocity);
 		}
 	}
-
-	perf_end(_cycle_perf);
 }
 
 void
@@ -294,8 +280,4 @@ VehicleAngularVelocity::PrintStatus()
 	} else {
 		PX4_WARN("sensor_gyro_control unavailable for selected sensor: %d (%d)", _selected_sensor_device_id,  _selected_sensor);
 	}
-
-	perf_print_counter(_cycle_perf);
-	perf_print_counter(_interval_perf);
-	perf_print_counter(_sensor_latency_perf);
 }

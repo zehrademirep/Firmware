@@ -48,15 +48,13 @@
  */
 #include "vtol_att_control_main.h"
 #include <systemlib/mavlink_log.h>
-#include <matrix/matrix/math.hpp>
 #include <uORB/PublicationQueued.hpp>
 
 using namespace matrix;
 
 VtolAttitudeControl::VtolAttitudeControl() :
-	WorkItem(px4::wq_configurations::rate_ctrl),
-	_loop_perf(perf_alloc(PC_ELAPSED, "vtol_att_control: cycle")),
-	_loop_interval_perf(perf_alloc(PC_INTERVAL, "vtol_att_control: interval"))
+	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
+	_loop_perf(perf_alloc(PC_ELAPSED, "vtol_att_control: cycle"))
 {
 	_vtol_vehicle_status.vtol_in_rw_mode = true;	/* start vtol in rotary wing mode*/
 
@@ -108,18 +106,17 @@ VtolAttitudeControl::VtolAttitudeControl() :
 VtolAttitudeControl::~VtolAttitudeControl()
 {
 	perf_free(_loop_perf);
-	perf_free(_loop_interval_perf);
 }
 
 bool
 VtolAttitudeControl::init()
 {
-	if (!_actuator_inputs_mc.register_callback()) {
+	if (!_actuator_inputs_mc.registerCallback()) {
 		PX4_ERR("MC actuator controls callback registration failed!");
 		return false;
 	}
 
-	if (!_actuator_inputs_fw.register_callback()) {
+	if (!_actuator_inputs_fw.registerCallback()) {
 		PX4_ERR("FW actuator controls callback registration failed!");
 		return false;
 	}
@@ -290,8 +287,8 @@ void
 VtolAttitudeControl::Run()
 {
 	if (should_exit()) {
-		_actuator_inputs_fw.unregister_callback();
-		_actuator_inputs_mc.unregister_callback();
+		_actuator_inputs_fw.unregisterCallback();
+		_actuator_inputs_mc.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}
@@ -309,7 +306,6 @@ VtolAttitudeControl::Run()
 	}
 
 	perf_begin(_loop_perf);
-	perf_count(_loop_interval_perf);
 
 	const bool updated_fw_in = _actuator_inputs_fw.update(&_actuators_fw_in);
 	const bool updated_mc_in = _actuator_inputs_mc.update(&_actuators_mc_in);
@@ -333,13 +329,13 @@ VtolAttitudeControl::Run()
 	}
 
 	if (should_run) {
-		/* only update parameters if they changed */
-		if (_params_sub.updated()) {
-			/* read from param to clear updated flag */
-			parameter_update_s update;
-			_params_sub.copy(&update);
+		// check for parameter updates
+		if (_parameter_update_sub.updated()) {
+			// clear update
+			parameter_update_s pupdate;
+			_parameter_update_sub.copy(&pupdate);
 
-			/* update parameters from storage */
+			// update parameters from storage
 			parameters_update();
 		}
 
@@ -349,7 +345,7 @@ VtolAttitudeControl::Run()
 		_local_pos_sub.update(&_local_pos);
 		_local_pos_sp_sub.update(&_local_pos_sp);
 		_pos_sp_triplet_sub.update(&_pos_sp_triplet);
-		_airspeed_sub.update(&_airspeed);
+		_airspeed_validated_sub.update(&_airspeed_validated);
 		_tecs_status_sub.update(&_tecs_status);
 		_land_detected_sub.update(&_land_detected);
 		vehicle_cmd_poll();
@@ -393,15 +389,6 @@ VtolAttitudeControl::Run()
 			_fw_virtual_att_sp_sub.update(&_fw_virtual_att_sp);
 
 			if (mc_att_sp_updated || fw_att_sp_updated) {
-
-				// reinitialize the setpoint while not armed to make sure no value from the last mode or flight is still kept
-				if (!_v_control_mode.flag_armed) {
-					Quatf().copyTo(_mc_virtual_att_sp.q_d);
-					Vector3f().copyTo(_mc_virtual_att_sp.thrust_body);
-					Quatf().copyTo(_v_att_sp.q_d);
-					Vector3f().copyTo(_v_att_sp.thrust_body);
-				}
-
 				_vtol_type->update_transition_state();
 				_v_att_sp_pub.publish(_v_att_sp);
 			}
@@ -413,16 +400,6 @@ VtolAttitudeControl::Run()
 			_vtol_vehicle_status.vtol_in_rw_mode = true;
 			_vtol_vehicle_status.vtol_in_trans_mode = false;
 			_vtol_vehicle_status.in_transition_to_fw = false;
-
-			if (mc_att_sp_updated) {
-				// reinitialize the setpoint while not armed to make sure no value from the last mode or flight is still kept
-				if (!_v_control_mode.flag_armed) {
-					Quatf().copyTo(_mc_virtual_att_sp.q_d);
-					Vector3f().copyTo(_mc_virtual_att_sp.thrust_body);
-					Quatf().copyTo(_v_att_sp.q_d);
-					Vector3f().copyTo(_v_att_sp.thrust_body);
-				}
-			}
 
 			_vtol_type->update_mc_state();
 			_v_att_sp_pub.publish(_v_att_sp);
@@ -499,23 +476,10 @@ fw_att_control is the fixed wing attitude controller.
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_COMMAND("start");
-
 	PRINT_MODULE_USAGE_NAME("vtol_att_control", "controller");
-
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
-}
-
-int
-VtolAttitudeControl::print_status()
-{
-	PX4_INFO("Running");
-
-	perf_print_counter(_loop_perf);
-	perf_print_counter(_loop_interval_perf);
-
-	return PX4_OK;
 }
 
 int vtol_att_control_main(int argc, char *argv[])

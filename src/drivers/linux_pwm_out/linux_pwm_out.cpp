@@ -36,13 +36,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <cmath>
+#include <math.h>
 
-#include <px4_tasks.h>
-#include <px4_getopt.h>
-#include <px4_posix.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/posix.h>
 
-#include <uORB/uORB.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
@@ -51,7 +51,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
-#include <lib/mixer/mixer.h>
+#include <lib/mixer/MixerGroup.hpp>
 #include <lib/mixer/mixer_load.h>
 #include <parameters/param.h>
 #include <output_limit/output_limit.h>
@@ -155,12 +155,12 @@ int initialize_mixer(const char *mixer_filename)
 	unsigned buflen = sizeof(buf);
 	memset(buf, '\0', buflen);
 
-	_mixer_group = new MixerGroup(mixer_control_callback, (uintptr_t) &_controls);
+	_mixer_group = new MixerGroup();
 
 	// PX4_INFO("Trying to initialize mixer from config file %s", mixer_filename);
 
 	if (load_mixer_file(mixer_filename, buf, buflen) == 0) {
-		if (_mixer_group->load_from_buf(buf, buflen) == 0) {
+		if (_mixer_group->load_from_buf(mixer_control_callback, (uintptr_t) &_controls, buf, buflen) == 0) {
 			PX4_INFO("Loaded mixer from file %s", mixer_filename);
 			return 0;
 
@@ -260,7 +260,7 @@ void task_main(int argc, char *argv[])
 
 	Mixer::Airmode airmode = Mixer::Airmode::disabled;
 	update_params(airmode);
-	int params_sub = orb_subscribe(ORB_ID(parameter_update));
+	uORB::Subscription parameter_update_sub{ORB_ID(parameter_update)};
 
 	int rc_channels_sub = -1;
 
@@ -418,16 +418,15 @@ void task_main(int argc, char *argv[])
 			_task_should_exit = true;
 		}
 
-		/* check for parameter updates */
-		bool param_updated = false;
-		orb_check(params_sub, &param_updated);
+		// check for parameter updates
+		if (parameter_update_sub.updated()) {
+			// clear update
+			parameter_update_s pupdate;
+			parameter_update_sub.copy(&pupdate);
 
-		if (param_updated) {
-			struct parameter_update_s update;
-			orb_copy(ORB_ID(parameter_update), params_sub, &update);
+			// update parameters from storage
 			update_params(airmode);
 		}
-
 	}
 
 	delete pwm_out;
@@ -445,10 +444,6 @@ void task_main(int argc, char *argv[])
 
 	if (rc_channels_sub != -1) {
 		orb_unsubscribe(rc_channels_sub);
-	}
-
-	if (params_sub != -1) {
-		orb_unsubscribe(params_sub);
 	}
 
 	perf_free(_perf_control_latency);

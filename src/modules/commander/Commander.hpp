@@ -39,8 +39,8 @@
 
 #include <lib/controllib/blocks.hpp>
 #include <lib/mathlib/mathlib.h>
-#include <px4_module.h>
-#include <px4_module_params.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
 #include <lib/hysteresis/hysteresis.h>
 
 // publications
@@ -52,6 +52,7 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_status_flags.h>
+#include <uORB/topics/test_motor.h>
 
 // subscriptions
 #include <uORB/Subscription.hpp>
@@ -60,6 +61,7 @@
 #include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/offboard_control_mode.h>
+#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_command.h>
@@ -75,7 +77,6 @@ class Commander : public ModuleBase<Commander>, public ModuleParams
 {
 public:
 	Commander();
-	~Commander();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -97,6 +98,8 @@ public:
 	// TODO: only temporarily static until low priority thread is removed
 	static bool preflight_check(bool report);
 
+	void get_circuit_breaker_params();
+
 private:
 
 	DEFINE_PARAMETERS(
@@ -114,7 +117,7 @@ private:
 		(ParamFloat<px4::params::COM_HOME_V_T>) _param_com_home_v_t,
 
 		(ParamFloat<px4::params::COM_POS_FS_EPH>) _param_com_pos_fs_eph,
-		(ParamFloat<px4::params::COM_POS_FS_EPV>) _param_com_pos_fs_epv,
+		(ParamFloat<px4::params::COM_POS_FS_EPV>) _param_com_pos_fs_epv, 	/*Not realy used for now*/
 		(ParamFloat<px4::params::COM_VEL_FS_EVH>) _param_com_vel_fs_evh,
 		(ParamInt<px4::params::COM_POSCTL_NAVL>) _param_com_posctl_navl,	/* failsafe response to loss of navigation accuracy */
 
@@ -129,21 +132,25 @@ private:
 		(ParamInt<px4::params::COM_OBS_AVOID>) _param_com_obs_avoid,
 		(ParamInt<px4::params::COM_OA_BOOT_T>) _param_com_oa_boot_t,
 
-		(ParamFloat<px4::params::COM_TAS_FS_INNOV>) _tas_innov_threshold,
-		(ParamFloat<px4::params::COM_TAS_FS_INTEG>) _tas_innov_integ_threshold,
-		(ParamInt<px4::params::COM_TAS_FS_T1>) _tas_use_stop_delay,
-		(ParamInt<px4::params::COM_TAS_FS_T2>) _tas_use_start_delay,
-		(ParamInt<px4::params::COM_ASPD_FS_ACT>) _airspeed_fail_action,
-		(ParamFloat<px4::params::COM_ASPD_STALL>) _airspeed_stall,
-		(ParamInt<px4::params::COM_ASPD_FS_DLY>) _airspeed_rtl_delay,
 		(ParamInt<px4::params::COM_FLT_PROFILE>) _param_com_flt_profile,
+
 
 		(ParamFloat<px4::params::COM_OF_LOSS_T>) _param_com_of_loss_t,
 		(ParamInt<px4::params::COM_OBL_ACT>) _param_com_obl_act,
 		(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act,
 
-		(ParamInt<px4::params::COM_PREARM_MODE>) _param_com_prearm_mode
+		(ParamInt<px4::params::COM_PREARM_MODE>) _param_com_prearm_mode,
+		(ParamInt<px4::params::COM_MOT_TEST_EN>) _param_com_mot_test_en,
 
+		(ParamFloat<px4::params::COM_KILL_DISARM>) _param_com_kill_disarm,
+
+		(ParamInt<px4::params::CBRK_SUPPLY_CHK>) _param_cbrk_supply_chk,
+		(ParamInt<px4::params::CBRK_USB_CHK>) _param_cbrk_usb_chk,
+		(ParamInt<px4::params::CBRK_AIRSPD_CHK>) _param_cbrk_airspd_chk,
+		(ParamInt<px4::params::CBRK_ENGINEFAIL>) _param_cbrk_enginefail,
+		(ParamInt<px4::params::CBRK_GPSFAIL>) _param_cbrk_gpsfail,
+		(ParamInt<px4::params::CBRK_FLIGHTTERM>) _param_cbrk_flightterm,
+		(ParamInt<px4::params::CBRK_VELPOSERR>) _param_cbrk_velposerr
 	)
 
 	enum class PrearmedMode {
@@ -170,20 +177,6 @@ private:
 	bool		_nav_test_passed{false};	/**< true if the post takeoff navigation test has passed */
 	bool		_nav_test_failed{false};	/**< true if the post takeoff navigation test has failed */
 
-	/* class variables used to check for airspeed sensor failure */
-	bool		_tas_check_fail{false};	/**< true when airspeed innovations have failed consistency checks */
-	hrt_abstime	_time_last_tas_pass{0};		/**< last time innovation checks passed */
-	hrt_abstime	_time_last_tas_fail{0};		/**< last time innovation checks failed */
-	static constexpr hrt_abstime TAS_INNOV_FAIL_DELAY{1_s};	/**< time required for innovation levels to pass or fail (usec) */
-	bool		_tas_use_inhibit{false};	/**< true when the commander has instructed the control loops to not use airspeed data */
-	hrt_abstime	_time_tas_good_declared{0};	/**< time TAS use was started (uSec) */
-	hrt_abstime	_time_tas_bad_declared{0};	/**< time TAS use was stopped (uSec) */
-	hrt_abstime	_time_last_airspeed{0};		/**< time last airspeed measurement was received (uSec) */
-	hrt_abstime	_time_last_aspd_innov_check{0};	/**< time airspeed innovation was last checked (uSec) */
-	char		*_airspeed_fault_type = new char[7];
-	float		_load_factor_ratio{0.5f};	/**< ratio of maximum load factor predicted by stall speed to measured load factor */
-	float		_apsd_innov_integ_state{0.0f};	/**< inegral of excess normalised airspeed innovation (sec) */
-
 	bool _geofence_loiter_on{false};
 	bool _geofence_rtl_on{false};
 	bool _geofence_warning_action_on{false};
@@ -194,6 +187,8 @@ private:
 
 	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd, actuator_armed_s *armed,
 			    uORB::PublicationQueued<vehicle_command_ack_s> &command_ack_pub, bool *changed);
+
+	unsigned handle_command_motor_test(const vehicle_command_s &cmd);
 
 	bool set_home_position();
 	bool set_home_position_alt_only();
@@ -223,8 +218,6 @@ private:
 	void estimator_check(bool *status_changed);
 
 	void offboard_control_update(bool &status_changed);
-
-	void airspeed_use_check();
 
 	void battery_status_check();
 
@@ -265,6 +258,7 @@ private:
 	bool _print_avoidance_msg_once{false};
 
 	// Subscriptions
+	uORB::Subscription					_parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription					_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 
 	uORB::SubscriptionData<airspeed_s>			_airspeed_sub{ORB_ID(airspeed)};
@@ -280,6 +274,7 @@ private:
 	uORB::Publication<actuator_armed_s>			_armed_pub{ORB_ID(actuator_armed)};
 	uORB::Publication<commander_state_s>			_commander_state_pub{ORB_ID(commander_state)};
 	uORB::Publication<vehicle_status_flags_s>		_vehicle_status_flags_pub{ORB_ID(vehicle_status_flags)};
+	uORB::Publication<test_motor_s>				_test_motor_pub{ORB_ID(test_motor)};
 
 	uORB::PublicationData<home_position_s>			_home_pub{ORB_ID(home_position)};
 
