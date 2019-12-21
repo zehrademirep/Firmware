@@ -387,6 +387,9 @@ bool VtolType::is_channel_set(const int channel, const int target)
 
 void VtolType::pusher_assist()
 {
+
+	_hover_pusher_assist_thrust = 0.0f;
+
 	// if the thrust scale param is zero or the drone is on manual mode,
 	// then the pusher-for-pitch strategy is disabled and we can return
 	if (_params->forward_thrust_scale < FLT_EPSILON ||
@@ -410,7 +413,7 @@ void VtolType::pusher_assist()
 	const Dcmf R_sp(Quatf(_v_att_sp->q_d));
 	const Eulerf euler(R);
 	const Eulerf euler_sp(R_sp);
-	float forward_force = 0.0f;
+	float fixed_wing_forward_actuation = 0.0f; // normalized pusher throttle (standard VTOL) or tilt (tiltrotor)
 
 	// direction of desired body z axis represented in earth frame
 	Vector3f body_z_sp(R_sp(0, 2), R_sp(1, 2), R_sp(2, 2));
@@ -431,8 +434,17 @@ void VtolType::pusher_assist()
 		// desired roll angle in heading frame stays the same
 		float roll_new = -asinf(body_z_sp(1));
 
-		forward_force = (sinf(-pitch_forward) - sinf(_params->down_pitch_max))
-				* _params->forward_thrust_scale;
+		fixed_wing_forward_actuation = (sinf(-pitch_forward) - sinf(_params->down_pitch_max))
+					       * _params->forward_thrust_scale;
+		// limmit forward actuation to [0, 0.9]
+		fixed_wing_forward_actuation = fixed_wing_forward_actuation < 0.0f ? 0.0f : fixed_wing_forward_actuation;
+		fixed_wing_forward_actuation = fixed_wing_forward_actuation > 0.9f ? 0.9f : fixed_wing_forward_actuation;
+
+		// compensate in combined thrust for tilt (increase thrust with tilt)
+		if (static_cast<vtol_type>(_params->vtol_type) == vtol_type::TILTROTOR) {
+			float thrust_new = _v_att_sp->thrust_body[2] / cosf(fixed_wing_forward_actuation * M_PI_2_F);
+			_v_att_sp->thrust_body[2] = thrust_new;
+		}
 
 		// return the vehicle to level position
 		float pitch_new = 0.0f;
@@ -456,7 +468,5 @@ void VtolType::pusher_assist()
 		_v_att_sp->q_d_valid = true;
 	}
 
-	forward_force = forward_force < 0.0f ? 0.0f : forward_force;
-	_hover_pusher_assist_thrust = forward_force;
-	// printf("forward_force: %f \n", (double)forward_force);
+	_hover_pusher_assist_thrust = fixed_wing_forward_actuation;
 }
