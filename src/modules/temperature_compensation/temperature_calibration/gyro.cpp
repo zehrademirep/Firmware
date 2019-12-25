@@ -55,8 +55,7 @@ TemperatureCalibrationGyro::TemperatureCalibrationGyro(float min_temperature_ris
 	_num_sensor_instances = num_gyros;
 }
 
-void
-TemperatureCalibrationGyro::reset_calibration()
+void TemperatureCalibrationGyro::reset_calibration()
 {
 	/* reset all driver level calibrations */
 	float offset = 0.0f;
@@ -68,8 +67,7 @@ TemperatureCalibrationGyro::reset_calibration()
 	}
 }
 
-int
-TemperatureCalibrationGyro::update_sensor_instance(PerSensorData &data, int sensor_sub)
+int TemperatureCalibrationGyro::update_sensor_instance(PerSensorData &data, int sensor_sub)
 {
 	bool finished = data.hot_soaked;
 
@@ -150,8 +148,7 @@ TemperatureCalibrationGyro::update_sensor_instance(PerSensorData &data, int sens
 	return 1;
 }
 
-int
-TemperatureCalibrationGyro::finish()
+int TemperatureCalibrationGyro::finish()
 {
 	for (unsigned uorb_index = 0; uorb_index < _num_sensor_instances; uorb_index++) {
 		finish_sensor_instance(_data[uorb_index], uorb_index);
@@ -167,14 +164,13 @@ TemperatureCalibrationGyro::finish()
 	return result;
 }
 
-int
-TemperatureCalibrationGyro::finish_sensor_instance(PerSensorData &data, int sensor_index)
+int TemperatureCalibrationGyro::finish_sensor_instance(PerSensorData &data, int sensor_index)
 {
 	if (!data.hot_soaked || data.tempcal_complete) {
 		return 0;
 	}
 
-	double res[3][4] = {};
+	double res[3][4] {};
 	data.P[0].fit(res[0]);
 	PX4_INFO("Result Gyro %d Axis 0: %.20f %.20f %.20f %.20f", sensor_index, (double)res[0][0], (double)res[0][1],
 		 (double)res[0][2],
@@ -189,7 +185,7 @@ TemperatureCalibrationGyro::finish_sensor_instance(PerSensorData &data, int sens
 		 (double)res[2][3]);
 	data.tempcal_complete = true;
 
-	char str[30];
+	char str[30] {};
 	float param = 0.0f;
 	int result = PX4_OK;
 

@@ -283,7 +283,6 @@ private:
 	sensor_selection_s _selection {};		/**< struct containing the sensor selection to be published to the uORB */
 	subsystem_info_s _info {};			/**< subsystem info publication */
 
-
 };
 
 } /* namespace sensors */

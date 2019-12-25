@@ -47,10 +47,9 @@
 namespace temperature_compensation
 {
 
-int
-TemperatureCompensation::initialize_parameter_handles(ParameterHandles &parameter_handles)
+int TemperatureCompensation::initialize_parameter_handles(ParameterHandles &parameter_handles)
 {
-	char nbuf[16];
+	char nbuf[16] {};
 	int ret = PX4_ERROR;
 
 	/* rate gyro calibration parameters */
@@ -152,13 +151,10 @@ TemperatureCompensation::initialize_parameter_handles(ParameterHandles &paramete
 	return PX4_OK;
 }
 
-int
-TemperatureCompensation::parameters_update()
+int TemperatureCompensation::parameters_update()
 {
-	int ret = 0;
-
 	ParameterHandles parameter_handles;
-	ret = initialize_parameter_handles(parameter_handles);
+	int ret = initialize_parameter_handles(parameter_handles);
 
 	if (ret != 0) {
 		return ret;
@@ -270,8 +266,7 @@ TemperatureCompensation::parameters_update()
 	return ret;
 }
 
-bool
-TemperatureCompensation::calc_thermal_offsets_1D(SensorCalData1D &coef, float measured_temp, float &offset)
+bool TemperatureCompensation::calc_thermal_offsets_1D(SensorCalData1D &coef, float measured_temp, float &offset)
 {
 	bool ret = true;
 
@@ -307,8 +302,7 @@ TemperatureCompensation::calc_thermal_offsets_1D(SensorCalData1D &coef, float me
 
 }
 
-bool
-TemperatureCompensation::calc_thermal_offsets_3D(const SensorCalData3D &coef, float measured_temp, float offset[])
+bool TemperatureCompensation::calc_thermal_offsets_3D(const SensorCalData3D &coef, float measured_temp, float offset[])
 {
 	bool ret = true;
 
@@ -337,11 +331,9 @@ TemperatureCompensation::calc_thermal_offsets_3D(const SensorCalData3D &coef, fl
 	}
 
 	return ret;
-
 }
 
-int
-TemperatureCompensation::set_sensor_id_gyro(uint32_t device_id, int topic_instance)
+int TemperatureCompensation::set_sensor_id_gyro(uint32_t device_id, int topic_instance)
 {
 	if (_parameters.gyro_tc_enable != 1) {
 		return 0;
@@ -350,8 +342,7 @@ TemperatureCompensation::set_sensor_id_gyro(uint32_t device_id, int topic_instan
 	return set_sensor_id(device_id, topic_instance, _gyro_data, _parameters.gyro_cal_data, GYRO_COUNT_MAX);
 }
 
-int
-TemperatureCompensation::set_sensor_id_accel(uint32_t device_id, int topic_instance)
+int TemperatureCompensation::set_sensor_id_accel(uint32_t device_id, int topic_instance)
 {
 	if (_parameters.accel_tc_enable != 1) {
 		return 0;
@@ -360,8 +351,7 @@ TemperatureCompensation::set_sensor_id_accel(uint32_t device_id, int topic_insta
 	return set_sensor_id(device_id, topic_instance, _accel_data, _parameters.accel_cal_data, ACCEL_COUNT_MAX);
 }
 
-int
-TemperatureCompensation::set_sensor_id_baro(uint32_t device_id, int topic_instance)
+int TemperatureCompensation::set_sensor_id_baro(uint32_t device_id, int topic_instance)
 {
 	if (_parameters.baro_tc_enable != 1) {
 		return 0;
@@ -384,8 +374,7 @@ int TemperatureCompensation::set_sensor_id(uint32_t device_id, int topic_instanc
 	return -1;
 }
 
-int
-TemperatureCompensation::update_scales_and_offsets_gyro(int topic_instance, float temperature, float *offsets,
+int TemperatureCompensation::update_scales_and_offsets_gyro(int topic_instance, float temperature, float *offsets,
 		float *scales)
 {
 	// Check if temperature compensation is enabled
@@ -417,8 +406,7 @@ TemperatureCompensation::update_scales_and_offsets_gyro(int topic_instance, floa
 	return 1;
 }
 
-int
-TemperatureCompensation::update_scales_and_offsets_accel(int topic_instance, float temperature, float *offsets,
+int TemperatureCompensation::update_scales_and_offsets_accel(int topic_instance, float temperature, float *offsets,
 		float *scales)
 {
 	// Check if temperature compensation is enabled
@@ -450,8 +438,7 @@ TemperatureCompensation::update_scales_and_offsets_accel(int topic_instance, flo
 	return 1;
 }
 
-int
-TemperatureCompensation::update_scales_and_offsets_baro(int topic_instance, float temperature, float *offsets,
+int TemperatureCompensation::update_scales_and_offsets_baro(int topic_instance, float temperature, float *offsets,
 		float *scales)
 {
 	// Check if temperature compensation is enabled
@@ -481,8 +468,7 @@ TemperatureCompensation::update_scales_and_offsets_baro(int topic_instance, floa
 	return 1;
 }
 
-void
-TemperatureCompensation::print_status()
+void TemperatureCompensation::print_status()
 {
 	PX4_INFO("Temperature Compensation:");
 	PX4_INFO(" gyro: enabled: %i", _parameters.gyro_tc_enable);

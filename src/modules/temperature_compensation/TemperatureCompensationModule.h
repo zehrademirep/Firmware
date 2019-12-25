@@ -34,30 +34,27 @@
 #pragma once
 
 #include <drivers/drv_hrt.h>
-
-#include <mathlib/mathlib.h>
-
-#include <uORB/topics/sensor_gyro.h>
-#include <uORB/topics/sensor_accel.h>
-#include <uORB/topics/sensor_baro.h>
-#include <uORB/topics/sensor_correction.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/module_params.h>
-#include <px4_platform_common/getopt.h>
-#include <px4_platform_common/posix.h>
-#include <px4_platform_common/tasks.h>
-#include <px4_platform_common/time.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/mathlib/mathlib.h>
-
-#include <drivers/drv_hrt.h>
-
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
+#include <px4_platform_common/atomic.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/time.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/sensor_baro.h>
+#include <uORB/topics/sensor_correction.h>
+#include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 
 #include "TemperatureCompensation.h"
 
@@ -72,7 +69,7 @@ class TemperatureCompensationModule : public ModuleBase<TemperatureCompensationM
 {
 public:
 	TemperatureCompensationModule();
-	~TemperatureCompensationModule();
+	~TemperatureCompensationModule() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -98,19 +95,8 @@ public:
 
 private:
 
-	/**
-	 * Poll the accelerometer for updated data.
-	 */
 	void		accelPoll();
-
-	/**
-	 * Poll the gyro for updated data.
-	 */
 	void		gyroPoll();
-
-	/**
-	 * Poll the barometer for updated data.
-	 */
 	void		baroPoll();
 
 	/**
@@ -137,7 +123,8 @@ private:
 		{ORB_ID(sensor_baro), 2}
 	};
 
-	uORB::Subscription	_params_sub{ORB_ID(parameter_update)};				/**< notification of parameter updates */
+	uORB::Subscription	_params_sub{ORB_ID(parameter_update)};
+	uORB::Subscription	_vehicle_command_sub{ORB_ID(vehicle_command)};
 
 	perf_counter_t		_loop_perf;			/**< loop performance counter */
 
@@ -151,19 +138,6 @@ private:
 
 	bool _corrections_changed{true};
 
-protected:
-	// Volatile because threads
-	static volatile bool _start_calibration;
-	static volatile bool _is_accel_calibration;
-	static volatile bool _is_baro_calibration;
-	static volatile bool _is_gyro_calibration;
-	volatile bool _is_calibrating{false};
 };
-
-volatile bool TemperatureCompensationModule::_start_calibration = false;
-volatile bool TemperatureCompensationModule::_is_accel_calibration = false;
-volatile bool TemperatureCompensationModule::_is_baro_calibration = false;
-volatile bool TemperatureCompensationModule::_is_gyro_calibration = false;
-
 
 } // namespace temperature_compensation

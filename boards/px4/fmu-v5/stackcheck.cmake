@@ -76,12 +76,13 @@ px4_add_board(
 		mc_att_control
 		mc_pos_control
 		mc_rate_control
+		#micrortps_bridge
 		navigator
 		rc_update
 		rover_pos_control
 		sensors
-		temperature_compensation
 		sih
+		temperature_compensation
 		vmount
 		vtol_att_control
 	SYSTEMCMDS

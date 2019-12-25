@@ -68,8 +68,7 @@ TemperatureCalibrationAccel::~TemperatureCalibrationAccel()
 	}
 }
 
-void
-TemperatureCalibrationAccel::reset_calibration()
+void TemperatureCalibrationAccel::reset_calibration()
 {
 	/* reset all driver level calibrations */
 	float offset = 0.0f;
@@ -85,8 +84,7 @@ TemperatureCalibrationAccel::reset_calibration()
 	}
 }
 
-int
-TemperatureCalibrationAccel::update_sensor_instance(PerSensorData &data, int sensor_sub)
+int TemperatureCalibrationAccel::update_sensor_instance(PerSensorData &data, int sensor_sub)
 {
 	bool finished = data.hot_soaked;
 
@@ -167,8 +165,7 @@ TemperatureCalibrationAccel::update_sensor_instance(PerSensorData &data, int sen
 	return 1;
 }
 
-int
-TemperatureCalibrationAccel::finish()
+int TemperatureCalibrationAccel::finish()
 {
 	for (unsigned uorb_index = 0; uorb_index < _num_sensor_instances; uorb_index++) {
 		finish_sensor_instance(_data[uorb_index], uorb_index);
@@ -184,8 +181,7 @@ TemperatureCalibrationAccel::finish()
 	return result;
 }
 
-int
-TemperatureCalibrationAccel::finish_sensor_instance(PerSensorData &data, int sensor_index)
+int TemperatureCalibrationAccel::finish_sensor_instance(PerSensorData &data, int sensor_index)
 {
 	if (!data.hot_soaked || data.tempcal_complete) {
 		return 0;

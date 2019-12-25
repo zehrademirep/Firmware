@@ -217,18 +217,53 @@ TemperatureCompensationModule::Run()
 	perf_begin(_loop_perf);
 
 	// Check if user has requested to run the calibration routine
-	if (_start_calibration && !_is_calibrating) {
-		bool accel = _is_accel_calibration;
-		bool baro = _is_baro_calibration;
-		bool gyro = _is_gyro_calibration;
+	if (_vehicle_command_sub.updated()) {
+		vehicle_command_s cmd;
 
-		// Kicks off temperature calibration in a new task
-		int ret = run_temperature_calibration(accel, baro, gyro);
+		if (_vehicle_command_sub.copy(&cmd)) {
+			if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION) {
+				bool got_temperature_calibration_command = false;
+				bool accel = false;
+				bool baro = false;
+				bool gyro = false;
 
-		if (ret == PX4_OK) {
-			// Calibration has been started -- module may resume
-			_start_calibration = false;
-			_is_calibrating = true;
+				if ((int)(cmd.param1) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
+					gyro = true;
+					got_temperature_calibration_command = true;
+				}
+
+				if ((int)(cmd.param5) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
+					accel = true;
+					got_temperature_calibration_command = true;
+				}
+
+				if ((int)(cmd.param7) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
+					baro = true;
+					got_temperature_calibration_command = true;
+				}
+
+				if (got_temperature_calibration_command) {
+					int ret = run_temperature_calibration(accel, baro, gyro);
+
+					// publish ACK
+					vehicle_command_ack_s command_ack{};
+
+					if (ret == 0) {
+						command_ack.result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+					} else {
+						command_ack.result = vehicle_command_s::VEHICLE_CMD_RESULT_FAILED;
+					}
+
+					command_ack.timestamp = hrt_absolute_time();
+					command_ack.command = cmd.command;
+					command_ack.target_system = cmd.source_system;
+					command_ack.target_component = cmd.source_component;
+
+					uORB::PublicationQueued<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
+					command_ack_pub.publish(command_ack);
+				}
+			}
 		}
 	}
 
@@ -294,12 +329,6 @@ TemperatureCompensationModule::custom_command(int argc, char *argv[])
 {
 	if (!strcmp(argv[0], "calibrate")) {
 
-		if (!is_running()) {
-			PX4_ERR("background task not running");
-
-			return PX4_ERROR;
-		}
-
 		bool accel_calib = false;
 		bool baro_calib = false;
 		bool gyro_calib = false;
@@ -332,11 +361,13 @@ TemperatureCompensationModule::custom_command(int argc, char *argv[])
 			}
 		}
 
-		// Set flags to indicate to module that it is now in calibration mode
-		_is_accel_calibration = accel_calib || calib_all;
-		_is_baro_calibration = baro_calib || calib_all;
-		_is_gyro_calibration = gyro_calib || calib_all;
-		_start_calibration = _is_accel_calibration || _is_baro_calibration || _is_gyro_calibration;
+		if (!is_running()) {
+			PX4_WARN("background task not running");
+
+			if (task_spawn(0, nullptr) != PX4_OK) {
+				return PX4_ERROR;
+			}
+		}
 
 		vehicle_command_s vcmd{};
 		vcmd.timestamp = hrt_absolute_time();
@@ -401,9 +432,7 @@ a temperature cycle.
 	return 0;
 }
 
-extern "C" __EXPORT int temperature_compensation_main(int argc, char *argv[]);
-
-int temperature_compensation_main(int argc, char *argv[])
+extern "C" __EXPORT int temperature_compensation_main(int argc, char *argv[])
 {
 	return TemperatureCompensationModule::main(argc, argv);
 }

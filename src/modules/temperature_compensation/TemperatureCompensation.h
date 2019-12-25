@@ -53,12 +53,10 @@ static constexpr uint8_t GYRO_COUNT_MAX = 3;
 static constexpr uint8_t ACCEL_COUNT_MAX = 3;
 static constexpr uint8_t BARO_COUNT_MAX = 3;
 
-static_assert(GYRO_COUNT_MAX == 3,
-	      "GYRO_COUNT_MAX must be 3 (if changed, add/remove TC_* params to match the count)");
+static_assert(GYRO_COUNT_MAX == 3, "GYRO_COUNT_MAX must be 3 (if changed, add/remove TC_* params to match the count)");
 static_assert(ACCEL_COUNT_MAX == 3,
 	      "ACCEL_COUNT_MAX must be 3 (if changed, add/remove TC_* params to match the count)");
-static_assert(BARO_COUNT_MAX == 3,
-	      "BARO_COUNT_MAX must be 3 (if changed, add/remove TC_* params to match the count)");
+static_assert(BARO_COUNT_MAX == 3, "BARO_COUNT_MAX must be 3 (if changed, add/remove TC_* params to match the count)");
 
 static constexpr uint8_t SENSOR_COUNT_MAX = 3;
 
@@ -93,9 +91,7 @@ public:
 	 *         2: corrections applied and offsets & scales updated
 	 */
 	int update_scales_and_offsets_gyro(int topic_instance, float temperature, float *offsets, float *scales);
-
 	int update_scales_and_offsets_accel(int topic_instance, float temperature, float *offsets, float *scales);
-
 	int update_scales_and_offsets_baro(int topic_instance, float temperature, float *offsets, float *scales);
 
 	/** output current configuration status to console */
@@ -187,22 +183,26 @@ private:
 
 	// create a struct containing all thermal calibration parameters
 	struct Parameters {
-		int32_t gyro_tc_enable;
-		SensorCalData3D gyro_cal_data[GYRO_COUNT_MAX];
-		int32_t accel_tc_enable;
-		SensorCalData3D accel_cal_data[ACCEL_COUNT_MAX];
-		int32_t baro_tc_enable;
-		SensorCalData1D baro_cal_data[BARO_COUNT_MAX];
+		int32_t gyro_tc_enable{0};
+		SensorCalData3D gyro_cal_data[GYRO_COUNT_MAX] {};
+
+		int32_t accel_tc_enable{0};
+		SensorCalData3D accel_cal_data[ACCEL_COUNT_MAX] {};
+
+		int32_t baro_tc_enable{0};
+		SensorCalData1D baro_cal_data[BARO_COUNT_MAX] {};
 	};
 
 	// create a struct containing the handles required to access all calibration parameters
 	struct ParameterHandles {
-		param_t gyro_tc_enable;
-		SensorCalHandles3D gyro_cal_handles[GYRO_COUNT_MAX];
-		param_t accel_tc_enable;
-		SensorCalHandles3D accel_cal_handles[ACCEL_COUNT_MAX];
-		param_t baro_tc_enable;
-		SensorCalHandles1D baro_cal_handles[BARO_COUNT_MAX];
+		param_t gyro_tc_enable{PARAM_INVALID};
+		SensorCalHandles3D gyro_cal_handles[GYRO_COUNT_MAX] {};
+
+		param_t accel_tc_enable{PARAM_INVALID};
+		SensorCalHandles3D accel_cal_handles[ACCEL_COUNT_MAX] {};
+
+		param_t baro_tc_enable{PARAM_INVALID};
+		SensorCalHandles1D baro_cal_handles[BARO_COUNT_MAX] {};
 	};
 
 

@@ -68,14 +68,12 @@ TemperatureCalibrationBaro::~TemperatureCalibrationBaro()
 	}
 }
 
-void
-TemperatureCalibrationBaro::reset_calibration()
+void TemperatureCalibrationBaro::reset_calibration()
 {
 	// nothing to do
 }
 
-int
-TemperatureCalibrationBaro::update_sensor_instance(PerSensorData &data, int sensor_sub)
+int TemperatureCalibrationBaro::update_sensor_instance(PerSensorData &data, int sensor_sub)
 {
 	bool finished = data.hot_soaked;
 
@@ -152,8 +150,7 @@ TemperatureCalibrationBaro::update_sensor_instance(PerSensorData &data, int sens
 	return 1;
 }
 
-int
-TemperatureCalibrationBaro::finish()
+int TemperatureCalibrationBaro::finish()
 {
 	for (unsigned uorb_index = 0; uorb_index < _num_sensor_instances; uorb_index++) {
 		finish_sensor_instance(_data[uorb_index], uorb_index);
@@ -169,8 +166,7 @@ TemperatureCalibrationBaro::finish()
 	return result;
 }
 
-int
-TemperatureCalibrationBaro::finish_sensor_instance(PerSensorData &data, int sensor_index)
+int TemperatureCalibrationBaro::finish_sensor_instance(PerSensorData &data, int sensor_index)
 {
 	if (!data.hot_soaked || data.tempcal_complete) {
 		return 0;

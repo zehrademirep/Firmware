@@ -5,62 +5,54 @@
 # NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
-set TEMP_CALIB_ARGS ""
+set TEMP_COMP_START ""
+
+if param compare TC_A_ENABLE 1
+then
+	set TEMP_CALIB_ARGS "true"
+fi
+
+if param compare TC_B_ENABLE 1
+then
+	set TEMP_CALIB_ARGS "true"
+fi
+
+if param compare TC_G_ENABLE 1
+then
+	set TEMP_CALIB_ARGS "true"
+fi
+
+if [ "x$TEMP_COMP_START" != "x" ]
+then
+	temperature_compensation start
+fi
+
+unset TEMP_COMP_START
+
 
 #
 # Determine if a thermal calibration should be started.
 #
 
+set TEMP_CALIB_ARGS ""
+
 if param compare SYS_CAL_ACCEL 1
 then
 	set TEMP_CALIB_ARGS "${TEMP_CALIB_ARGS} -a"
+	param set SYS_CAL_ACCEL 0
 fi
 
 if param compare SYS_CAL_GYRO 1
 then
 	set TEMP_CALIB_ARGS "${TEMP_CALIB_ARGS} -g"
+	param set SYS_CAL_GYRO 0
 fi
 
 if param compare SYS_CAL_BARO 1
 then
 	set TEMP_CALIB_ARGS "${TEMP_CALIB_ARGS} -b"
+	param set SYS_CAL_BARO 0
 fi
-
-# Check if online calibration should run
-if param compare SYS_CAL_ACCEL 1
-then
-	temperature_compensation start
-else
-	if param compare SYS_CAL_GYRO 1
-	then
-		temperature_compensation start
-	else
-		if param compare SYS_CAL_BARO 1
-		then
-			temperature_compensation start
-		else
-			if param compare TC_A_ENABLE 1
-			then
-				temperature_compensation start
-			else
-				if param compare TC_G_ENABLE 1
-				then
-					temperature_compensation start
-				else
-					if param compare TC_B_ENABLE 1
-					then
-						temperature_compensation start
-					fi
-				fi
-			fi
-		fi
-	fi
-fi
-
-# Always unset after things have started
-param set SYS_CAL_ACCEL 0
-param set SYS_CAL_GYRO 0
-param set SYS_CAL_BARO 0
 
 #
 # Start the thermal calibration cycle.

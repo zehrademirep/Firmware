@@ -97,8 +97,7 @@ protected:
 	float _max_start_temperature; ///< maximum temperature above which the process does not start and an error is declared
 };
 
-int
-TemperatureCalibrationBase::set_parameter(const char *format_str, unsigned index, const void *value)
+int TemperatureCalibrationBase::set_parameter(const char *format_str, unsigned index, const void *value)
 {
 	char param_str[30] {};
 	(void)sprintf(param_str, format_str, index);

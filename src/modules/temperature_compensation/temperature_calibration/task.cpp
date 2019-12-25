@@ -42,6 +42,7 @@
 #include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/sensor_gyro.h>
 #include <mathlib/mathlib.h>
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/tasks.h>
@@ -60,20 +61,14 @@ class TemperatureCalibration;
 
 namespace temperature_calibration
 {
-TemperatureCalibration *instance = nullptr;
+px4::atomic<TemperatureCalibration *> instance{nullptr};
 }
 
 class TemperatureCalibration
 {
 public:
-	/**
-	 * Constructor
-	 */
-	TemperatureCalibration(bool accel, bool baro, bool gyro);
 
-	/**
-	 * Destructor
-	 */
+	TemperatureCalibration(bool accel, bool baro, bool gyro) : _accel(accel), _baro(baro), _gyro(gyro) {}
 	~TemperatureCalibration() = default;
 
 	/**
@@ -97,24 +92,16 @@ private:
 	bool	_force_task_exit = false;
 	int	_control_task = -1;		// task handle for task
 
-	bool _accel; ///< enable accel calibration?
-	bool _baro; ///< enable baro calibration?
-	bool _gyro; ///< enable gyro calibration?
+	const bool _accel; ///< enable accel calibration?
+	const bool _baro; ///< enable baro calibration?
+	const bool _gyro; ///< enable gyro calibration?
 };
 
-TemperatureCalibration::TemperatureCalibration(bool accel, bool baro, bool gyro) :
-	_accel(accel),
-	_baro(baro),
-	_gyro(gyro)
-{
-}
-
-void
-TemperatureCalibration::task_main()
+void TemperatureCalibration::task_main()
 {
 	// subscribe to all gyro instances
-	int gyro_sub[SENSOR_COUNT_MAX] = {};
-	px4_pollfd_struct_t fds[SENSOR_COUNT_MAX] = {};
+	int gyro_sub[SENSOR_COUNT_MAX] {-1, -1, -1};
+	px4_pollfd_struct_t fds[SENSOR_COUNT_MAX] {};
 	unsigned num_gyro = orb_group_count(ORB_ID(sensor_gyro));
 
 	if (num_gyro > SENSOR_COUNT_MAX) {
@@ -138,8 +125,8 @@ TemperatureCalibration::task_main()
 	param_get(param_find("SYS_CAL_TMAX"), &max_start_temp);
 
 	//init calibrators
-	TemperatureCalibrationBase *calibrators[3];
-	bool error_reported[3] = {};
+	TemperatureCalibrationBase *calibrators[3] {};
+	bool error_reported[3] {};
 	int num_calibrators = 0;
 
 	if (_accel) {
@@ -318,20 +305,18 @@ TemperatureCalibration::task_main()
 		orb_unsubscribe(gyro_sub[i]);
 	}
 
-	delete temperature_calibration::instance;
-	temperature_calibration::instance = nullptr;
+	delete temperature_calibration::instance.load();
+	temperature_calibration::instance.store(nullptr);
 	PX4_INFO("Exiting temperature calibration task");
 }
 
-int
-TemperatureCalibration::do_temperature_calibration(int argc, char *argv[])
+int TemperatureCalibration::do_temperature_calibration(int argc, char *argv[])
 {
-	temperature_calibration::instance->task_main();
+	temperature_calibration::instance.load()->task_main();
 	return 0;
 }
 
-int
-TemperatureCalibration::start()
+int TemperatureCalibration::start()
 {
 	_control_task = px4_task_spawn_cmd("temperature_calib",
 					   SCHED_DEFAULT,
@@ -341,8 +326,8 @@ TemperatureCalibration::start()
 					   nullptr);
 
 	if (_control_task < 0) {
-		delete temperature_calibration::instance;
-		temperature_calibration::instance = nullptr;
+		delete temperature_calibration::instance.load();
+		temperature_calibration::instance.store(nullptr);
 		PX4_ERR("start failed");
 		return -errno;
 	}
@@ -350,8 +335,7 @@ TemperatureCalibration::start()
 	return 0;
 }
 
-void
-TemperatureCalibration::publish_led_control(led_control_s &led_control)
+void TemperatureCalibration::publish_led_control(led_control_s &led_control)
 {
 	led_control.timestamp = hrt_absolute_time();
 	_led_control_pub.publish(led_control);
@@ -359,13 +343,20 @@ TemperatureCalibration::publish_led_control(led_control_s &led_control)
 
 int run_temperature_calibration(bool accel, bool baro, bool gyro)
 {
-	PX4_INFO("Starting temperature calibration task (accel=%i, baro=%i, gyro=%i)", (int)accel, (int)baro, (int)gyro);
-	temperature_calibration::instance = new TemperatureCalibration(accel, baro, gyro);
+	if (temperature_calibration::instance.load() == nullptr) {
+		PX4_INFO("Starting temperature calibration task (accel=%i, baro=%i, gyro=%i)", (int)accel, (int)baro, (int)gyro);
+		temperature_calibration::instance.store(new TemperatureCalibration(accel, baro, gyro));
 
-	if (temperature_calibration::instance == nullptr) {
-		PX4_ERR("alloc failed");
-		return 1;
+		if (temperature_calibration::instance.load() == nullptr) {
+			PX4_ERR("alloc failed");
+			return 1;
+		}
+
+		return temperature_calibration::instance.load()->start();
+
+	} else {
+		PX4_WARN("temperature calibration task already running");
 	}
 
-	return temperature_calibration::instance->start();
+	return PX4_ERROR;
 }

@@ -32,7 +32,7 @@
 ############################################################################
 
 px4_add_module(
-	MODULE modules__TemperatureCompensation
+	MODULE modules__temperature_compensation
 	MAIN temperature_compensation
 	SRCS
 		TemperatureCompensationModule.cpp
