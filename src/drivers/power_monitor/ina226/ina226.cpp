@@ -395,7 +395,6 @@ INA226::collect()
 				if (_shunt >= 0) {
 
 					power_monitor_s report{};
-					report.timestamp = hrt_absolute_time();
 					report.voltage_v = (float) _bus_volatage * INA226_VSCALE;
 					report.current_a = (float) _current * _current_lsb;
 					report.power_w   = (float) _power * _power_lsb;

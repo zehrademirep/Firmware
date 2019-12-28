@@ -989,7 +989,6 @@ bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_na
 						if (type == subsystem_info_s::SUBSYSTEM_TYPE_MAG) { _info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_MAG2; }
 					}
 
-					_info.timestamp = hrt_absolute_time();
 					_info.present = true;
 					_info.enabled = true;
 					_info.ok = false;
@@ -1106,19 +1105,13 @@ void VotedSensorsUpdate::sensorsPoll(sensor_combined_s &raw, vehicle_air_data_s 
 
 	// publish sensor corrections if necessary
 	if (_corrections_changed) {
-		_corrections.timestamp = hrt_absolute_time();
-
 		_sensor_correction_pub.publish(_corrections);
-
 		_corrections_changed = false;
 	}
 
 	// publish sensor selection if changed
 	if (_selection_changed) {
-		_selection.timestamp = hrt_absolute_time();
-
 		_sensor_selection_pub.publish(_selection);
-
 		_selection_changed = false;
 	}
 }

@@ -233,7 +233,6 @@ VehicleAngularVelocity::Run()
 			vehicle_angular_velocity_s angular_velocity;
 			angular_velocity.timestamp_sample = sensor_data.timestamp_sample;
 			rates.copyTo(angular_velocity.xyz);
-			angular_velocity.timestamp = hrt_absolute_time();
 
 			_vehicle_angular_velocity_pub.publish(angular_velocity);
 		}
@@ -262,7 +261,6 @@ VehicleAngularVelocity::Run()
 			vehicle_angular_velocity_s angular_velocity;
 			angular_velocity.timestamp_sample = sensor_data.timestamp;
 			rates.copyTo(angular_velocity.xyz);
-			angular_velocity.timestamp = hrt_absolute_time();
 
 			_vehicle_angular_velocity_pub.publish(angular_velocity);
 		}

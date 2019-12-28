@@ -191,7 +191,6 @@ void SendEvent::answer_command(const vehicle_command_s &cmd, unsigned result)
 {
 	/* publish ACK */
 	vehicle_command_ack_s command_ack{};
-	command_ack.timestamp = hrt_absolute_time();
 	command_ack.command = cmd.command;
 	command_ack.result = (uint8_t)result;
 	command_ack.target_system = cmd.source_system;
@@ -240,7 +239,6 @@ int SendEvent::custom_command(int argc, char *argv[])
 		}
 
 		vehicle_command_s vcmd{};
-		vcmd.timestamp = hrt_absolute_time();
 		vcmd.param1 = (float)((gyro_calib
 				       || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN);
 		vcmd.param2 = NAN;

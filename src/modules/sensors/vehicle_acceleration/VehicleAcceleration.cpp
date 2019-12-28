@@ -195,7 +195,6 @@ VehicleAcceleration::Run()
 		vehicle_acceleration_s out{};
 		out.timestamp_sample = sensor_data.timestamp;
 		accel.copyTo(out.xyz);
-		out.timestamp = hrt_absolute_time();
 
 		_vehicle_acceleration_pub.publish(out);
 	}

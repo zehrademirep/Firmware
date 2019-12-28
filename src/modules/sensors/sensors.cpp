@@ -475,7 +475,6 @@ Sensors::run()
 			 * IMU units as a consistency metric and publish to the sensor preflight topic
 			*/
 			if (!_armed) {
-				preflt.timestamp = hrt_absolute_time();
 				_voted_sensors_update.calcAccelInconsistency(preflt);
 				_voted_sensors_update.calcGyroInconsistency(preflt);
 				_voted_sensors_update.calcMagInconsistency(preflt);

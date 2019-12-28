@@ -1912,7 +1912,6 @@ void Logger::write_changed_parameters(LogType type)
 void Logger::ack_vehicle_command(vehicle_command_s *cmd, uint32_t result)
 {
 	vehicle_command_ack_s vehicle_command_ack = {};
-	vehicle_command_ack.timestamp = hrt_absolute_time();
 	vehicle_command_ack.command = cmd->command;
 	vehicle_command_ack.result = (uint8_t)result;
 	vehicle_command_ack.target_system = cmd->source_system;

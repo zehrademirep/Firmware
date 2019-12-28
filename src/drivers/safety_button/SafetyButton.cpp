@@ -142,7 +142,6 @@ SafetyButton::Run()
 	FlashButton();
 
 	safety_s safety{};
-	safety.timestamp = hrt_absolute_time();
 	safety.safety_switch_available = true;
 	safety.safety_off = _safety_btn_off;
 

@@ -190,7 +190,6 @@ PX4Accelerometer::update(hrt_abstime timestamp, float x, float y, float z)
 	status.sample_rate = _sample_rate;
 	status.temperature = _temperature;
 	status.vibration_metric = _vibration_metric;
-	status.timestamp = hrt_absolute_time();
 	_sensor_status_pub.publish(status);
 }
 
@@ -248,7 +247,6 @@ PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 		status.measure_rate = _update_rate;
 		status.sample_rate = _sample_rate;
 		status.temperature = _temperature;
-		status.timestamp = hrt_absolute_time();
 		_sensor_status_pub.publish(status);
 	}
 
@@ -349,7 +347,6 @@ PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 	memcpy(fifo.y, sample.y, sizeof(sample.y[0]) * sample.samples);
 	memcpy(fifo.z, sample.z, sizeof(sample.z[0]) * sample.samples);
 
-	fifo.timestamp = hrt_absolute_time();
 	_sensor_fifo_pub.publish(fifo);
 }
 

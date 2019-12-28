@@ -510,8 +510,6 @@ FixedwingPositionControl::tecs_status_publish()
 	t.throttle_integ = _tecs.throttle_integ_state();
 	t.pitch_integ = _tecs.pitch_integ_state();
 
-	t.timestamp = hrt_absolute_time();
-
 	_tecs_status_pub.publish(t);
 }
 
@@ -534,8 +532,6 @@ FixedwingPositionControl::status_publish()
 
 	pos_ctrl_status.yaw_acceptance = NAN;
 
-	pos_ctrl_status.timestamp = hrt_absolute_time();
-
 	_pos_ctrl_status_pub.publish(pos_ctrl_status);
 }
 
@@ -549,8 +545,6 @@ FixedwingPositionControl::landing_status_publish()
 	pos_ctrl_landing_status.flare_length = _landingslope.flare_length();
 
 	pos_ctrl_landing_status.abort_landing = _land_abort;
-
-	pos_ctrl_landing_status.timestamp = hrt_absolute_time();
 
 	_pos_ctrl_landing_status_pub.publish(pos_ctrl_landing_status);
 }
@@ -1715,8 +1709,6 @@ FixedwingPositionControl::Run()
 		 * publish setpoint.
 		 */
 		if (control_position(curr_pos, ground_speed, _pos_sp_triplet.previous, _pos_sp_triplet.current, _pos_sp_triplet.next)) {
-			_att_sp.timestamp = hrt_absolute_time();
-
 			// add attitude setpoint offsets
 			_att_sp.roll_body += _parameters.rollsp_offset_rad;
 			_att_sp.pitch_body += _parameters.pitchsp_offset_rad;
