@@ -160,6 +160,7 @@ function(px4_add_board)
 		ARGN ${ARGN})
 
 	set(PX4_BOARD_DIR ${CMAKE_CURRENT_LIST_DIR} CACHE STRING "PX4 board directory" FORCE)
+	include_directories(${PX4_BOARD_DIR}/include)
 	include_directories(${PX4_BOARD_DIR}/src)
 
 	set(PX4_BOARD ${VENDOR}_${MODEL} CACHE STRING "PX4 board" FORCE)

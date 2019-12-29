@@ -6,6 +6,7 @@ px4_add_board(
 	PLATFORM posix
 	TESTING
 	DRIVERS
+		adc
 		#barometer # all available barometer drivers
 		barometer/ms5611
 		batt_smbus
