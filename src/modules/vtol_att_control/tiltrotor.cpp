@@ -212,7 +212,7 @@ void Tiltrotor::update_mc_state()
 
 	VtolType::pusher_assist();
 
-	_tilt_control = _hover_pusher_assist_thrust;
+	_tilt_control = _hover_pusher_or_tilt_forward_actuation;
 }
 
 void Tiltrotor::update_fw_state()
