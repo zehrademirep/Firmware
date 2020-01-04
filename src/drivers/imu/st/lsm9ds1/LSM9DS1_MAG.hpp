@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,38 +32,54 @@
  ****************************************************************************/
 
 /**
- * @file board_config.h
+ * @file LSM9DS1_MAG.hpp
  *
- * Emlid Navio2 RPI internal definitions
+ * Driver for the ST LSM9DS1 magnetometer connected via SPI.
+ *
  */
 
 #pragma once
 
-#define BOARD_OVERRIDE_UUID "RPIID00000000000" // must be of length 16
-#define PX4_SOC_ARCH_ID     PX4_SOC_ARCH_ID_RPI
+#include "ST_LSM9DS1_MAG_Registers.hpp"
 
-#define ADC_BATTERY_VOLTAGE_CHANNEL 2
-#define ADC_BATTERY_CURRENT_CHANNEL 3
+#include <drivers/drv_hrt.h>
+#include <lib/drivers/device/spi.h>
+#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+#include <lib/perf/perf_counter.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
-#define BOARD_BATTERY1_V_DIV   (10.177939394f)
-#define BOARD_BATTERY1_A_PER_V (15.391030303f)
+class LSM9DS1_MAG : public device::SPI, public px4::ScheduledWorkItem
+{
+public:
+	LSM9DS1_MAG(int bus, uint32_t device, enum Rotation rotation = ROTATION_NONE);
+	~LSM9DS1_MAG() override;
 
-#define BOARD_HAS_NO_RESET
-#define BOARD_HAS_NO_BOOTLOADER
+	bool Init();
+	void Start();
+	void Stop();
+	bool Reset();
+	void PrintInfo();
 
-#define BOARD_MAX_LEDS 1 // Number of external LED's this board has
+protected:
+	int probe() override;
 
-/*
- * I2C busses
- */
-#define PX4_I2C_BUS_EXPANSION		1
-#define PX4_NUMBER_I2C_BUSES		1
+private:
 
-// SPI
-#define PX4_SPI_BUS_SENSORS      0
-#define PX4_SPIDEV_MPU           PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1)
-#define PX4_SPIDEV_LSM9DS1       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 2)
-#define PX4_SPIDEV_LSM9DS1_MAG   PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 3)
+	void     Run() override;
 
-#include <system_config.h>
-#include <px4_platform_common/board_common.h>
+	uint8_t  RegisterRead(ST_LSM9DS1_MAG::Register reg);
+	void     RegisterWrite(ST_LSM9DS1_MAG::Register reg, uint8_t value);
+	void     RegisterSetBits(ST_LSM9DS1_MAG::Register reg, uint8_t setbits);
+	void     RegisterClearBits(ST_LSM9DS1_MAG::Register reg, uint8_t clearbits);
+
+
+	uint8_t	*_dma_data_buffer{nullptr};
+
+	PX4Magnetometer _px4_mag;
+
+	perf_counter_t _interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": run interval")};
+	perf_counter_t _transfer_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": transfer")};
+
+	hrt_abstime _time_last_temperature_update{0};
+};
