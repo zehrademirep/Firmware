@@ -121,9 +121,7 @@ public:
 	void set_passthrough(uint8_t reg, uint8_t size, uint8_t *out = nullptr);
 
 	int ak8963_reset();
-	int ak8963_setup();
 	int ak8963_setup_master_i2c();
-	bool ak8963_check_id(uint8_t &id);
 	bool ak8963_read_adjustments();
 
 	void print_status() { _px4_mag.print_status(); }

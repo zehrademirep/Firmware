@@ -179,11 +179,6 @@
 
 #define MPU9250_DEFAULT_ONCHIP_FILTER_FREQ	92
 
-#pragma pack(push, 1)
-/**
- * Report conversation within the mpu, including command byte and
- * interrupt status.
- */
 struct MPUReport {
 	uint8_t cmd;
 	uint8_t ACCEL_XOUT_H;
@@ -200,10 +195,7 @@ struct MPUReport {
 	uint8_t GYRO_YOUT_L;
 	uint8_t GYRO_ZOUT_H;
 	uint8_t GYRO_ZOUT_L;
-
-	struct ak8963_regs mag;
 };
-#pragma pack(pop)
 
 /*
   The MPU9250 can only handle high bus speeds on the sensor and
@@ -263,6 +255,8 @@ private:
 
 	MPU9250_mag		_mag;
 
+	hrt_abstime		_last_mag_update{0};
+
 	unsigned		_call_interval{1000};
 
 	unsigned		_dlpf_freq{0};
@@ -270,6 +264,7 @@ private:
 	unsigned		_sample_rate{1000};
 
 	perf_counter_t		_sample_perf;
+	perf_counter_t		_mag_sample_perf;
 	perf_counter_t		_bad_registers;
 	perf_counter_t		_duplicates;
 
@@ -280,14 +275,12 @@ private:
 	// configuration registers to detect SPI bus errors and sensor
 	// reset
 
-	static constexpr int MPU9250_NUM_CHECKED_REGISTERS{11};
-	static const uint16_t _mpu9250_checked_registers[MPU9250_NUM_CHECKED_REGISTERS];
-
-	const uint16_t			*_checked_registers{nullptr};
+	static constexpr int MPU9250_NUM_CHECKED_REGISTERS{7};
+	static const uint16_t _checked_registers[MPU9250_NUM_CHECKED_REGISTERS];
 
 	uint8_t					_checked_values[MPU9250_NUM_CHECKED_REGISTERS] {};
 	unsigned				_checked_next{0};
-	unsigned				_num_checked_registers{0};
+	const unsigned				_num_checked_registers{MPU9250_NUM_CHECKED_REGISTERS};
 
 
 	// last temperature reading for print_info()

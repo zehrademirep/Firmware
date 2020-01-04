@@ -188,16 +188,7 @@ MPU9250_mag::read_reg(unsigned int reg)
 	return buf;
 }
 
-bool
-MPU9250_mag::ak8963_check_id(uint8_t &deviceid)
-{
-	deviceid = read_reg(AK8963REG_WIA);
-
-	return (AK8963_DEVICE_ID == deviceid);
-}
-
-void
-MPU9250_mag::write_reg(unsigned reg, uint8_t value)
+void MPU9250_mag::write_reg(unsigned reg, uint8_t value)
 {
 	// general register transfer at low clock speed
 	if (_interface == nullptr) {
@@ -206,23 +197,6 @@ MPU9250_mag::write_reg(unsigned reg, uint8_t value)
 	} else {
 		_interface->write(MPU9250_LOW_SPEED_OP(reg), &value, 1);
 	}
-}
-
-int
-MPU9250_mag::ak8963_reset()
-{
-	// First initialize it to use the bus
-	int rv = ak8963_setup();
-
-	if (rv == OK) {
-		// Now reset the mag
-		write_reg(AK8963REG_CNTL2, AK8963_RESET);
-
-		// Then re-initialize the bus/mag
-		rv = ak8963_setup();
-	}
-
-	return rv;
 }
 
 bool
@@ -267,9 +241,15 @@ MPU9250_mag::ak8963_setup_master_i2c()
 	 * use the parent interface to configure the device to act
 	 * in master mode (SPI to I2C bridge)
 	 */
+
+	_parent->modify_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_RST);
+	px4_usleep(1000);
+
 	if (_interface == nullptr) {
 		_parent->modify_checked_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_EN);
+		px4_usleep(100);
 		_parent->write_reg(MPUREG_I2C_MST_CTRL, BIT_I2C_MST_P_NSR | BIT_I2C_MST_WAIT_FOR_ES | BITS_I2C_MST_CLOCK_400HZ);
+		px4_usleep(100);
 
 	} else {
 		_parent->modify_checked_reg(MPUREG_USER_CTRL, BIT_I2C_MST_EN, 0);
@@ -279,22 +259,23 @@ MPU9250_mag::ak8963_setup_master_i2c()
 }
 
 int
-MPU9250_mag::ak8963_setup()
+MPU9250_mag::ak8963_reset()
 {
 	int retries = 10;
 
 	do {
 		ak8963_setup_master_i2c();
 		write_reg(AK8963REG_CNTL2, AK8963_RESET);
-		px4_usleep(100);
+		px4_usleep(1000);
 
-		uint8_t id = 0;
+		uint8_t id = read_reg(AK8963REG_WIA);
 
-		if (ak8963_check_id(id)) {
+		if (AK8963_DEVICE_ID == id) {
 			break;
 		}
 
 		retries--;
+
 		PX4_WARN("AK8963: bad id %d retries %d", id, retries);
 		_parent->modify_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_RST);
 		px4_usleep(100);
@@ -311,6 +292,7 @@ MPU9250_mag::ak8963_setup()
 			px4_usleep(100);
 			ak8963_setup_master_i2c();
 			write_reg(AK8963REG_CNTL2, AK8963_RESET);
+			px4_usleep(1000);
 		}
 	}
 
