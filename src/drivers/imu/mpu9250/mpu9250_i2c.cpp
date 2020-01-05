@@ -70,6 +70,8 @@ MPU9250_I2C_interface(int bus, uint32_t address)
 MPU9250_I2C::MPU9250_I2C(int bus, uint32_t address) :
 	I2C("MPU9250_I2C", nullptr, bus, address, 400000)
 {
+	_debug_enabled = false;
+
 	set_device_type(DRV_ACC_DEVTYPE_MPU9250);
 }
 
@@ -107,7 +109,14 @@ MPU9250_I2C::probe()
 	uint8_t whoami = 0;
 
 	// Try first for mpu9250/6500
-	read(MPUREG_WHOAMI, &whoami, 1);
+	for (int i = 0; i < 5; i++) {
+		uint8_t cmd = MPUREG_WHOAMI;
+
+		transfer(&cmd, 1, &whoami, 1);
+		//read(MPUREG_WHOAMI, &whoami, 1);
+
+		PX4_INFO("whoami: %d", whoami);
+	}
 
 	if (whoami == MPU_WHOAMI_9250 || whoami == MPU_WHOAMI_6500) {
 		return PX4_OK;

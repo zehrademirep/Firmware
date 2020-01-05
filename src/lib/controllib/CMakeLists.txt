@@ -45,5 +45,5 @@ px4_add_library(controllib
 )
 
 if(PX4_TESTING)
-	add_subdirectory(controllib_test)
+	#add_subdirectory(controllib_test)
 endif()

@@ -34,6 +34,7 @@ px4_add_module(
 	MODULE drivers__mpu9250
 	MAIN mpu9250
 	COMPILE_FLAGS
+		-DDEBUG_BUILD
 	SRCS
 		AK8963_I2C.cpp
 		mpu9250.cpp
